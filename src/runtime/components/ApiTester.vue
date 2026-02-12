@@ -9,12 +9,21 @@ const props = defineProps<{
 const route = useRoute()
 const isLoading = ref(false)
 const response = ref<string>('')
+const responseData = ref<unknown>(null)
 const error = ref<string>('')
 const copySuccess = ref(false)
+const copyHtmlSuccess = ref(false)
 
 const apiEndpoint = computed(() => {
   const templatePath = route.path.replace('/__emails/', '')
   return `/api/emails/${templatePath}`
+})
+
+const htmlResponse = computed(() => {
+  if (!responseData.value || typeof responseData.value !== 'object') return ''
+  if (!('html' in responseData.value)) return ''
+  const html = (responseData.value as { html?: unknown }).html
+  return typeof html === 'string' ? html : ''
 })
 
 async function testApi() {
@@ -33,6 +42,7 @@ async function testApi() {
     })
 
     // Pretty print the JSON because we're not animals
+    responseData.value = result
     response.value = JSON.stringify(result, null, 2)
   }
   catch (err: unknown) {
@@ -40,6 +50,7 @@ async function testApi() {
     // Check if it's an Error object or just... something else. Because JavaScript.
     error.value = err instanceof Error ? err.message : 'Failed to test API'
     // Stringify the error too because sometimes you need to see the whole disaster
+    responseData.value = err
     response.value = JSON.stringify(err, null, 2)
   }
   finally {
@@ -60,6 +71,21 @@ async function copyResponse() {
   }
   catch (error) {
     console.error('Failed to copy response:', error)
+  }
+}
+
+async function copyHtml() {
+  if (!htmlResponse.value) return
+
+  try {
+    await navigator.clipboard.writeText(htmlResponse.value)
+    copyHtmlSuccess.value = true
+    setTimeout(() => {
+      copyHtmlSuccess.value = false
+    }, 2000)
+  }
+  catch (error) {
+    console.error('Failed to copy HTML:', error)
   }
 }
 </script>
@@ -91,12 +117,21 @@ async function copyResponse() {
     >
       <div class="nge-api-tester__response-header">
         <span class="nge-api-tester__response-label">Response</span>
-        <button
-          class="nge-api-tester__copy-button"
-          @click="copyResponse"
-        >
-          {{ copySuccess ? '✓ Copied' : 'Copy' }}
-        </button>
+        <div class="nge-api-tester__response-actions">
+          <button
+            v-if="htmlResponse"
+            class="nge-api-tester__copy-button"
+            @click="copyHtml"
+          >
+            {{ copyHtmlSuccess ? '✓ Copied HTML' : 'Copy HTML' }}
+          </button>
+          <button
+            class="nge-api-tester__copy-button"
+            @click="copyResponse"
+          >
+            {{ copySuccess ? '✓ Copied' : 'Copy' }}
+          </button>
+        </div>
       </div>
       <textarea
         class="nge-api-tester__output"
@@ -195,6 +230,11 @@ async function copyResponse() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+}
+
+.nge-api-tester__response-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .nge-api-tester__response-label {
