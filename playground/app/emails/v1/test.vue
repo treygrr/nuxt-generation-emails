@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { testData } from './test.data'
-import { Button, Hr, Html, Text } from '@vue-email/components'
+import { Button, Hr, Html, Text, Tailwind } from '@vue-email/components'
 
 defineOptions({
   name: 'TestNge', // Give it a proper name for Vue DevTools, our only friend in debugging
@@ -17,10 +17,16 @@ onMounted(() => {
 </script>
 
 <template>
-   <Html lang="en">
-    <Text>{{ testData.title }}</Text>
-    <p>{{ testData.message }}</p>
-    <Hr />
-    <Button href="https://example.com">Click me</Button>
-  </Html>
+  <Tailwind>
+    <Html lang="en">
+      <Text class="bg-brand px-3 py-2 font-medium leading-4 text-3xl">
+        {{ testData.title }}
+      </Text>
+      <p>{{ testData.message }}</p>
+      <Hr />
+      <Button href="https://example.com">
+        Click me
+      </Button>
+    </Html>
+  </Tailwind>
 </template>

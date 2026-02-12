@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted, onMounted } from 'vue'
 import { useRoute, useRouter } from '#imports'
 
 interface TreeNode {
@@ -31,13 +31,13 @@ const templateTree = computed(() => {
 
   // For each template path like 'v1/test-email', we need to create nested objects
   props.templates.forEach((template) => {
-    const parts = template.split('/')  // ['v1', 'test-email']
-    let currentLevel = tree  // Start at the root, obviously
+    const parts = template.split('/') // ['v1', 'test-email']
+    let currentLevel = tree // Start at the root, obviously
 
     // Loop through each part of the path and build the tree
     parts.forEach((part, index) => {
-      const isLast = index === parts.length - 1  // Is this the actual file or just a folder?
-      const path = parts.slice(0, index + 1).join('/')  // Build incremental path
+      const isLast = index === parts.length - 1 // Is this the actual file or just a folder?
+      const path = parts.slice(0, index + 1).join('/') // Build incremental path
 
       // Check if this node already exists (because we might have multiple files in same folder)
       let existing = currentLevel.find(node => node.name === part)
@@ -49,7 +49,7 @@ const templateTree = computed(() => {
           name: part,
           path: isLast ? template : path,
           isDirectory: !isLast,
-          children: !isLast ? [] : undefined,  // Folders get children, files get undefined. Makes total sense.
+          children: !isLast ? [] : undefined, // Folders get children, files get undefined. Makes total sense.
         }
         currentLevel.push(existing)
       }

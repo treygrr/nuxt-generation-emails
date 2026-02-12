@@ -1,8 +1,9 @@
 <script setup lang="ts">
-defineOptions({ inheritAttrs: false })
-
 import EmailTemplateSelector from '../components/EmailTemplateSelector.vue'
 import ApiTester from '../components/ApiTester.vue'
+import { computed, generateShareableUrl, ref, useAttrs, useRoute, useRouter } from '#imports'
+
+defineOptions({ inheritAttrs: false })
 
 const attrs = useAttrs()
 
