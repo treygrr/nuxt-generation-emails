@@ -1,4 +1,4 @@
-import { defineNuxtModule, addPlugin, createResolver } from '@nuxt/kit'
+import { defineNuxtModule, addPlugin, createResolver, addServerImports } from '@nuxt/kit'
 import vue from '@vitejs/plugin-vue'
 
 // Module options TypeScript interface definition
@@ -25,6 +25,17 @@ export default defineNuxtModule<ModuleOptions>({
     // Do not add the extension since the `.ts` will be transpiled to `.mjs` after `npm run prepack`
     addPlugin(resolver.resolve('./runtime/plugin'))
 
+    // Add server-side imports for URL params utilities
+    addServerImports([
+      {
+        name: 'encodeStoreToUrlParams',
+        from: resolver.resolve('./runtime/utils/url-params'),
+      },
+      {
+        name: 'getSendGenEmailsHandler',
+        from: resolver.resolve('./runtime/server/utils/send-gen-emails'),
+      },
+    ])
     const rollupConfig = nuxt.options.nitro?.rollupConfig ?? {}
     const existingPlugins = rollupConfig.plugins ?? []
     const plugins = Array.isArray(existingPlugins) ? existingPlugins : [existingPlugins]
