@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+import { defineCommand, runMain } from 'citty'
+import addCommand from './add'
+import setupCommand from './setup'
+
+const main = defineCommand({
+  meta: {
+    name: 'nuxt-generation-emails',
+    description: 'CLI for nuxt-generation-emails module',
+    version: '1.0.0',
+  },
+  subCommands: {
+    add: addCommand,
+    setup: setupCommand,
+  },
+})
+
+runMain(main)
