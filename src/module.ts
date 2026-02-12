@@ -1,6 +1,9 @@
-import { defineNuxtModule, addPlugin, createResolver, addServerImports, addImports } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerImports, addImports, extendPages } from '@nuxt/kit'
+import fs from 'node:fs'
 import vue from '@vitejs/plugin-vue'
 import { join } from 'pathe'
+import { addEmailPages } from './module-utils/add-email-pages'
+import { generateServerRoutes } from './module-utils/generate-server-routes'
 
 // Module options TypeScript interface definition
 export interface ModuleOptions {
@@ -25,8 +28,6 @@ export default defineNuxtModule<ModuleOptions>({
   setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
 
-    // Do not add the extension since the `.ts` will be transpiled to `.mjs` after `npm run prepack`
-    addPlugin(resolver.resolve('./runtime/plugin'))
     // Register the emails directory in the app directory
     const configuredEmailDir = options.emailDir ?? 'emails'
 
@@ -64,6 +65,22 @@ export default defineNuxtModule<ModuleOptions>({
         from: resolver.resolve('./runtime/server/utils/send-gen-emails'),
       },
     ])
+
+    // Register email preview pages under /__emails/
+    extendPages((pages) => {
+      if (!fs.existsSync(emailsDir)) {
+        return
+      }
+
+      addEmailPages(emailsDir, pages, {
+        emailsDir,
+        buildDir: nuxt.options.buildDir,
+        emailTemplateComponentPath: resolver.resolve('./runtime/pages/__emails.vue'),
+      })
+    })
+
+    // Generate initial server routes on module setup
+    generateServerRoutes(emailsDir, nuxt.options.rootDir)
 
     const rollupConfig = nuxt.options.nitro?.rollupConfig ?? {}
     const existingPlugins = rollupConfig.plugins ?? []

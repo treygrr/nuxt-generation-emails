@@ -9,9 +9,10 @@ export function generateVueTemplate(emailName: string): string {
   return `<script setup lang="ts">
 import { onMounted } from 'vue'
 import { ${emailName}Data } from './${emailName}.data'
+import { Button, Hr, Html, Text } from '@vue-email/components'
 
 defineOptions({
-  name: '${componentName}',  // Give it a proper name for Vue DevTools, our only friend in debugging
+  name: '${componentName}', // Give it a proper name for Vue DevTools, our only friend in debugging
 })
 
 // Load data from URL params on mount
@@ -24,11 +25,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div>
-    <!-- Default template because a blank page is depressing -->
-    <h1>{{ ${emailName}Data.title }}</h1>
+   <Html lang="en">
+    <Text>{{ ${emailName}Data.title }}</Text>
     <p>{{ ${emailName}Data.message }}</p>
-  </div>
+    <Hr />
+    <Button href="https://example.com">Click me</Button>
+  </Html>
 </template>
 `
 }
