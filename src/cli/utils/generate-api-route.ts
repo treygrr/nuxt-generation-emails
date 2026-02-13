@@ -11,6 +11,59 @@ import { render } from '@vue-email/render'
 import EmailTemplate from '~/emails/${emailPath}.vue'
 import type { ${className}Data } from '~/emails/${emailPath}.data'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['nuxt-generation-emails'],
+    summary: 'Send ${emailName} email',
+    description: 'Render and send the ${emailPath} email template.',
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            additionalProperties: true,
+            description: '${className}Data payload',
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Email rendered successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                message: { type: 'string' },
+                html: { type: 'string' },
+              },
+              required: ['success', 'message', 'html'],
+            },
+          },
+        },
+      },
+      500: {
+        description: 'Failed to render or send email',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                statusCode: { type: 'number', example: 500 },
+                statusMessage: { type: 'string' },
+              },
+              required: ['statusCode', 'statusMessage'],
+            },
+          },
+        },
+      },
+    },
+  },
+})
+
 export default defineEventHandler(async (event) => {
   // Read the POST body as typed data. Type safety in JavaScript? What a time to be alive.
   const body = await readBody<${className}Data>(event)
