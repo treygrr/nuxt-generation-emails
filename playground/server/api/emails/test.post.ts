@@ -4,12 +4,70 @@ import { render } from '@vue-email/render'
 import EmailTemplate from '~/emails/test.vue'
 import type { TestData } from '~/emails/test.data'
 
+defineRouteMeta({
+  openAPI: {
+    tags: ['nuxt-generation-emails'],
+    summary: 'Send test email',
+    description: 'Render and send the test email template.',
+    requestBody: {
+      required: true,
+      content: {
+        'application/json': {
+          schema: {
+            type: 'object',
+            example: {
+  "title": "Welcome!",
+  "message": "This is the test email template."
+},
+            additionalProperties: true,
+            description: 'TestData payload',
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Email rendered successfully',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                success: { type: 'boolean' },
+                message: { type: 'string' },
+                html: { type: 'string' },
+              },
+              required: ['success', 'message', 'html'],
+            },
+          },
+        },
+      },
+      500: {
+        description: 'Failed to render or send email',
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                statusCode: { type: 'number', example: 500 },
+                statusMessage: { type: 'string' },
+              },
+              required: ['statusCode', 'statusMessage'],
+            },
+          },
+        },
+      },
+    },
+  },
+})
+
 export default defineEventHandler(async (event) => {
   // Read the POST body as typed data. Type safety in JavaScript? What a time to be alive.
   const body = await readBody<TestData>(event)
 
+
   try {
-    const html = await render(EmailTemplate, body, { pretty: true })
+      const html = await render(EmailTemplate, body, { pretty: true })
 
     const nitro = useNitroApp()
     const sendGenEmailsHandler = getSendGenEmailsHandler()
@@ -21,7 +79,7 @@ export default defineEventHandler(async (event) => {
     else {
       // Otherwise, call the Nitro hook to allow users to send the email
       // This is where users can hook in their Resend/SendGrid/carrier pigeon integration
-      // @ts-expect-error - custom hook not recognized by Nitro types at compile time
+      // @ts-ignore - custom hook not recognized by Nitro types at compile time
       await nitro.hooks.callHook('nuxt-gen-emails:send', {
         html,
         data: body,
