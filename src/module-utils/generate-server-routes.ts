@@ -3,12 +3,17 @@ import fs from 'node:fs'
 import { createJiti } from 'jiti'
 import { generateApiRoute } from '../cli/utils/generate-api-route'
 
-async function resolveTestDataExampleLiteral(dataFilePath: string, jiti: ReturnType<typeof createJiti>): Promise<string | null> {
+async function resolveTestDataExampleLiteral(
+  dataFilePath: string,
+  emailName: string,
+  jiti: ReturnType<typeof createJiti>,
+): Promise<string | null> {
   if (!fs.existsSync(dataFilePath)) return null
 
   try {
     const dataModule = await jiti.import<Record<string, unknown>>(dataFilePath)
-    const testData = dataModule?.testData
+    const expectedStoreExportName = `${emailName}Data`
+    const testData = dataModule?.[expectedStoreExportName] ?? dataModule?.testData
     if (!testData) return null
 
     return JSON.stringify(testData, null, 2)
@@ -65,7 +70,7 @@ export async function generateServerRoutes(emailsDir: string, rootDir: string): 
         const apiFileName = `${emailName}.post.ts`
         const apiFilePath = join(apiRouteDir, apiFileName)
         const dataFilePath = join(dirPath, `${emailName}.data.ts`)
-        const testDataExampleLiteral = await resolveTestDataExampleLiteral(dataFilePath, jiti) ?? '{}'
+        const testDataExampleLiteral = await resolveTestDataExampleLiteral(dataFilePath, emailName, jiti) ?? '{}'
         const apiTemplate = generateApiRoute(emailName, emailPath, testDataExampleLiteral)
 
         fs.writeFileSync(apiFilePath, apiTemplate, 'utf-8')
