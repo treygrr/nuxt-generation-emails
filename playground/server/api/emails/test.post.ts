@@ -8,9 +8,8 @@ export default defineEventHandler(async (event) => {
   // Read the POST body as typed data. Type safety in JavaScript? What a time to be alive.
   const body = await readBody<TestData>(event)
 
-
   try {
-      const html = await render(EmailTemplate, body, { pretty: true })
+    const html = await render(EmailTemplate, body, { pretty: true })
 
     const nitro = useNitroApp()
     const sendGenEmailsHandler = getSendGenEmailsHandler()

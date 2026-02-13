@@ -17,10 +17,12 @@ onMounted(() => {
 </script>
 
 <template>
-   <Html lang="en">
+  <Html lang="en">
     <Text>{{ testData.title }}</Text>
     <p>{{ testData.message }}</p>
     <Hr />
-    <Button href="https://example.com">Click me</Button>
+    <Button href="https://example.com">
+      Click me
+    </Button>
   </Html>
 </template>
