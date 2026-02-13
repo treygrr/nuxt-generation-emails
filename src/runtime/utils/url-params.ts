@@ -43,7 +43,7 @@ export function decodeUrlParamsToStore(store: Record<string, unknown>): void {
       if (typeof currentValue === 'number') {
         const numValue = Number(value)
         // NaN check because JavaScript thinks "hello" converted to Number is a great idea
-        if (!isNaN(numValue)) {
+        if (!Number.isNaN(numValue)) {
           store[key] = numValue
         }
       }
