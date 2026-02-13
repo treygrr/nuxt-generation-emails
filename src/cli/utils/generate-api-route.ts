@@ -1,4 +1,4 @@
-export function generateApiRoute(emailName: string, emailPath: string): string {
+export function generateApiRoute(emailName: string, emailPath: string, testDataExampleLiteral: string = '{}'): string {
   // Capitalize because TypeScript interfaces are fancy and deserve capital letters
   const className = emailName.charAt(0).toUpperCase() + emailName.slice(1)
 
@@ -22,6 +22,7 @@ defineRouteMeta({
         'application/json': {
           schema: {
             type: 'object',
+            example: ${testDataExampleLiteral},
             additionalProperties: true,
             description: '${className}Data payload',
           },

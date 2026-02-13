@@ -1,16 +1,37 @@
 import { join } from 'pathe'
 import fs from 'node:fs'
+import { createJiti } from 'jiti'
 import { generateApiRoute } from '../cli/utils/generate-api-route'
+
+async function resolveTestDataExampleLiteral(dataFilePath: string, jiti: ReturnType<typeof createJiti>): Promise<string | null> {
+  if (!fs.existsSync(dataFilePath)) return null
+
+  try {
+    const dataModule = await jiti.import<Record<string, unknown>>(dataFilePath)
+    const testData = dataModule?.testData
+    if (!testData) return null
+
+    return JSON.stringify(testData, null, 2)
+  }
+  catch {
+    return null
+  }
+}
 
 /**
  * Generate server routes for all email templates in a directory
  * @param emailsDir - Path to the emails directory
  * @param rootDir - Root directory of the project
  */
-export function generateServerRoutes(emailsDir: string, rootDir: string): void {
+export async function generateServerRoutes(emailsDir: string, rootDir: string): Promise<void> {
   if (!fs.existsSync(emailsDir)) return
 
   const serverApiDir = join(rootDir, 'server', 'api', 'emails')
+  const jiti = createJiti(rootDir, {
+    interopDefault: true,
+    moduleCache: false,
+    fsCache: false,
+  })
 
   // Ensure the server API directory exists
   if (!fs.existsSync(serverApiDir)) {
@@ -18,7 +39,7 @@ export function generateServerRoutes(emailsDir: string, rootDir: string): void {
   }
 
   // Recursively collect and generate routes for all email templates
-  function processEmailDirectory(dirPath: string, routePrefix: string = '') {
+  async function processEmailDirectory(dirPath: string, routePrefix: string = '') {
     const entries = fs.readdirSync(dirPath)
 
     for (const entry of entries) {
@@ -26,7 +47,7 @@ export function generateServerRoutes(emailsDir: string, rootDir: string): void {
       const stat = fs.statSync(fullPath)
 
       if (stat.isDirectory()) {
-        processEmailDirectory(fullPath, `${routePrefix}/${entry}`)
+        await processEmailDirectory(fullPath, `${routePrefix}/${entry}`)
       }
       else if (entry.endsWith('.vue')) {
         const emailName = entry.replace('.vue', '')
@@ -43,7 +64,9 @@ export function generateServerRoutes(emailsDir: string, rootDir: string): void {
 
         const apiFileName = `${emailName}.post.ts`
         const apiFilePath = join(apiRouteDir, apiFileName)
-        const apiTemplate = generateApiRoute(emailName, emailPath)
+        const dataFilePath = join(dirPath, `${emailName}.data.ts`)
+        const testDataExampleLiteral = await resolveTestDataExampleLiteral(dataFilePath, jiti) ?? '{}'
+        const apiTemplate = generateApiRoute(emailName, emailPath, testDataExampleLiteral)
 
         fs.writeFileSync(apiFilePath, apiTemplate, 'utf-8')
         console.log(`[nuxt-gen-emails] Generated API route: ${apiFilePath}`)
@@ -51,5 +74,5 @@ export function generateServerRoutes(emailsDir: string, rootDir: string): void {
     }
   }
 
-  processEmailDirectory(emailsDir)
+  await processEmailDirectory(emailsDir)
 }

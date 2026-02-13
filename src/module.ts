@@ -25,7 +25,7 @@ export default defineNuxtModule<ModuleOptions>({
   defaults: {
     emailDir: 'emails',
   },
-  setup(options, nuxt) {
+  async setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
 
     // Register the emails directory in the app directory
@@ -80,7 +80,7 @@ export default defineNuxtModule<ModuleOptions>({
     })
 
     // Generate initial server routes on module setup
-    generateServerRoutes(emailsDir, nuxt.options.rootDir)
+    await generateServerRoutes(emailsDir, nuxt.options.rootDir)
 
     const rollupConfig = nuxt.options.nitro?.rollupConfig ?? {}
     const existingPlugins = rollupConfig.plugins ?? []
