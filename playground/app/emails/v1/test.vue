@@ -5,6 +5,7 @@ import {
   Body,
   Button,
   Container,
+  Font,
   Head,
   Heading,
   Hr,
@@ -42,8 +43,16 @@ function formatCurrency(value: number): string {
   <Tailwind>
     <Html lang="en">
       <Head />
+      <Font
+        font-family="DM Sans"
+        :fallback-font-family="['Arial', 'Helvetica', 'sans-serif']"
+        :web-font="{ url: 'https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2', format: 'woff2' }"
+      />
       <Preview>{{ testData.previewText }}</Preview>
-      <Body class="bg-slate-100 py-10 font-sans text-slate-900">
+      <Body
+        class="bg-slate-100 py-10 text-slate-900"
+        style="font-family: 'DM Sans', Arial, Helvetica, sans-serif;"
+      >
         <Container class="mx-auto w-full max-w-[640px] rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
           <Section>
             <Text class="m-0 text-xs font-semibold uppercase tracking-wide text-indigo-600">
