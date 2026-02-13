@@ -9,7 +9,7 @@ export function generateVueTemplate(emailName: string): string {
   return `<script setup lang="ts">
 import { onMounted } from 'vue'
 import { ${emailName}Data } from './${emailName}.data'
-import { Button, Hr, Html, Text, Tailwind } from '@vue-email/components'
+import { Body, Button, Font, Head, Hr, Html, Text, Tailwind } from '@vue-email/components'
 
 defineOptions({
   name: '${componentName}', // Give it a proper name for Vue DevTools, our only friend in debugging
@@ -27,12 +27,20 @@ onMounted(() => {
 <template>
   <Tailwind>
     <Html lang="en">
-      <Text>{{ ${emailName}Data.title }}</Text>
-      <p>{{ ${emailName}Data.message }}</p>
-      <Hr />
-      <Button href="https://example.com">
-        Click me
-      </Button>
+      <Head />
+      <Font
+        font-family="DM Sans"
+        :fallback-font-family="['Arial', 'Helvetica', 'sans-serif']"
+        :web-font="{ url: 'https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2', format: 'woff2' }"
+      />
+      <Body style="font-family: 'DM Sans', Arial, Helvetica, sans-serif;">
+        <Text>{{ ${emailName}Data.title }}</Text>
+        <p>{{ ${emailName}Data.message }}</p>
+        <Hr />
+        <Button href="https://example.com">
+          Click me
+        </Button>
+      </Body>
     </Html>
   </Tailwind>
 </template>
