@@ -28,6 +28,11 @@ const templates = computed(() => {
 const showControls = ref(true)
 const copySuccess = ref(false)
 
+type EditableField = {
+  key: string
+  type: 'string' | 'number'
+}
+
 // Extract the data object from the store (it's the reactive object with the actual data)
 // This is where things get spicy. We need to find the ONE object that contains the actual data
 // while ignoring all the utility functions and TypeScript types that Vue so kindly bundles together
@@ -47,26 +52,99 @@ const dataObject = computed<Record<string, unknown> | null>(() => {
   return dataKey ? props.emailStore[dataKey] as Record<string, unknown> : null
 })
 
-// Get editable fields (strings and numbers only)
-const editableFields = computed(() => {
+// Get editable fields recursively (strings and numbers only)
+const editableFields = computed<EditableField[]>(() => {
   if (!dataObject.value) return []
 
-  return Object.entries(dataObject.value)
-    .filter(([_, value]) => typeof value === 'string' || typeof value === 'number')
-    .map(([key, value]) => ({
-      key,
-      value,
-      type: typeof value,
-    }))
+  return collectEditableFields(dataObject.value)
+})
+
+const previewRenderKey = computed(() => {
+  if (!dataObject.value) return route.fullPath
+
+  try {
+    return `${route.fullPath}:${JSON.stringify(dataObject.value)}`
+  }
+  catch {
+    return route.fullPath
+  }
 })
 
 function formatFieldLabel(key: string): string {
-  // Split camelCase/PascalCase into words
-  // Regex magic: insert space before capital letters. Works 90% of the time, every time.
-  const words = key.replace(/([A-Z])/g, ' $1').trim()
-  // Capitalize first letter because we're classy like that
-  // charAt(0).toUpperCase() + slice(1) is the JavaScript equivalent of "just make it pretty"
-  return words.charAt(0).toUpperCase() + words.slice(1)
+  return key
+    .split('.')
+    .map((segment) => {
+      if (/^\d+$/.test(segment)) return `[${segment}]`
+      const words = segment.replace(/([A-Z])/g, ' $1').trim()
+      return words.charAt(0).toUpperCase() + words.slice(1)
+    })
+    .join(' → ')
+}
+
+function getFieldId(key: string): string {
+  return `field-${key.replace(/[^\w-]/g, '-')}`
+}
+
+function collectEditableFields(value: unknown, path: string[] = [], visited: WeakSet<object> = new WeakSet()): EditableField[] {
+  if (typeof value === 'string') {
+    return [{ key: path.join('.'), type: 'string' }]
+  }
+
+  if (typeof value === 'number') {
+    return [{ key: path.join('.'), type: 'number' }]
+  }
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item, index) => collectEditableFields(item, [...path, String(index)], visited))
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    if (visited.has(value)) return []
+    visited.add(value)
+
+    return Object.entries(value).flatMap(([key, nestedValue]) =>
+      collectEditableFields(nestedValue, [...path, key], visited),
+    )
+  }
+
+  return []
+}
+
+function getValueAtPath(path: string): unknown {
+  if (!dataObject.value) return undefined
+
+  return path.split('.').reduce<unknown>((currentValue, segment) => {
+    if (currentValue === null || currentValue === undefined) return undefined
+
+    const key: string | number = /^\d+$/.test(segment) ? Number(segment) : segment
+    return (currentValue as Record<string | number, unknown>)[key]
+  }, dataObject.value)
+}
+
+function setValueAtPath(path: string, value: string, type: EditableField['type']): void {
+  if (!dataObject.value) return
+
+  const segments = path.split('.')
+  const lastSegment = segments.pop()
+  if (!lastSegment) return
+
+  const parent = segments.reduce<unknown>((currentValue, segment) => {
+    if (currentValue === null || currentValue === undefined) return undefined
+
+    const key: string | number = /^\d+$/.test(segment) ? Number(segment) : segment
+    return (currentValue as Record<string | number, unknown>)[key]
+  }, dataObject.value)
+
+  if (parent === null || parent === undefined || typeof parent !== 'object') return
+
+  const finalKey: string | number = /^\d+$/.test(lastSegment) ? Number(lastSegment) : lastSegment
+  if (type === 'number') {
+    const parsed = Number(value)
+    ;(parent as Record<string | number, unknown>)[finalKey] = Number.isNaN(parsed) ? 0 : parsed
+    return
+  }
+
+  ;(parent as Record<string | number, unknown>)[finalKey] = value
 }
 
 async function copyShareableUrl() {
@@ -133,20 +211,22 @@ async function copyShareableUrl() {
             :key="field.key"
             class="nge-email-preview__control"
           >
-            <label :for="`field-${field.key}`">{{ formatFieldLabel(field.key) }}</label>
+            <label :for="getFieldId(field.key)">{{ formatFieldLabel(field.key) }}</label>
             <input
               v-if="field.type === 'string'"
-              :id="`field-${field.key}`"
-              v-model="dataObject[field.key]"
+              :id="getFieldId(field.key)"
+              :value="getValueAtPath(field.key)"
               type="text"
               class="nge-email-preview__input"
+              @input="setValueAtPath(field.key, ($event.target as HTMLInputElement).value, field.type)"
             >
             <input
               v-else-if="field.type === 'number'"
-              :id="`field-${field.key}`"
-              v-model.number="dataObject[field.key]"
+              :id="getFieldId(field.key)"
+              :value="getValueAtPath(field.key)"
               type="number"
               class="nge-email-preview__input"
+              @input="setValueAtPath(field.key, ($event.target as HTMLInputElement).value, field.type)"
             >
           </div>
           <ApiTester :data-object="dataObject" />
@@ -154,7 +234,9 @@ async function copyShareableUrl() {
       </div>
       <div class="nge-email-preview__content">
         <ClientOnly>
-          <slot />
+          <div :key="previewRenderKey">
+            <slot />
+          </div>
           <template #fallback>
             <div class="nge-email-preview__placeholder">
               Loading preview...
