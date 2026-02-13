@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
     else {
       // Otherwise, call the Nitro hook to allow users to send the email
       // This is where users can hook in their Resend/SendGrid/carrier pigeon integration
-      // @ts-ignore - custom hook not recognized by Nitro types at compile time
+      // @ts-expect-error - custom hook not recognized by Nitro types at compile time
       await nitro.hooks.callHook('nuxt-gen-emails:send', {
         html,
         data: body,
