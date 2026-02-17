@@ -38,8 +38,7 @@
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test:types": "vue-tsc --noEmit && cd playground && vue-tsc --noEmit",
-    "cli:add": "cd playground && node ../dist/cli/index.mjs add test",
-    "cli:regen": "cd playground && node ../dist/cli/index.mjs regenerate"
+    "cli:add": "cd playground && node ../dist/cli/index.mjs add test"
   },
   "dependencies": {
     "@nuxt/kit": "^4.3.1",

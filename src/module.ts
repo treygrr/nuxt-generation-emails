@@ -1,4 +1,4 @@
-import { defineNuxtModule, createResolver, addServerImports, addImports, extendPages } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerImports, addServerHandler, addImports, extendPages } from '@nuxt/kit'
 import fs from 'node:fs'
 import vue from '@vitejs/plugin-vue'
 import { join } from 'pathe'
@@ -79,8 +79,17 @@ export default defineNuxtModule<ModuleOptions>({
       })
     })
 
-    // Generate initial server routes on module setup
-    await generateServerRoutes(emailsDir, nuxt.options.rootDir)
+    // Generate server route handlers into the build directory and register them programmatically.
+    // This keeps the user's server/ directory clean — no generated files to commit or maintain.
+    const handlers = await generateServerRoutes(emailsDir, nuxt.options.buildDir, nuxt.options.rootDir)
+
+    for (const handler of handlers) {
+      addServerHandler({
+        route: handler.route,
+        method: handler.method,
+        handler: handler.handlerPath,
+      })
+    }
 
     const rollupConfig = nuxt.options.nitro?.rollupConfig ?? {}
     const existingPlugins = rollupConfig.plugins ?? []

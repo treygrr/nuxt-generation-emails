@@ -3,6 +3,12 @@ import fs from 'node:fs'
 import { createJiti } from 'jiti'
 import { generateApiRoute } from '../cli/utils/generate-api-route'
 
+export interface ServerHandlerInfo {
+  route: string
+  method: string
+  handlerPath: string
+}
+
 async function resolveTestDataExampleLiteral(
   dataFilePath: string,
   emailName: string,
@@ -24,26 +30,37 @@ async function resolveTestDataExampleLiteral(
 }
 
 /**
- * Generate server routes for all email templates in a directory
+ * Generate server route handlers for all email templates in a directory.
+ * Handlers are written to the build directory and returned for registration
+ * via addServerHandler(), keeping the user's source tree clean.
+ *
  * @param emailsDir - Path to the emails directory
- * @param rootDir - Root directory of the project
+ * @param buildDir  - Nuxt build directory (.nuxt)
+ * @param rootDir   - Root directory of the project (used for jiti resolution)
+ * @returns Array of handler info objects for registration with addServerHandler()
  */
-export async function generateServerRoutes(emailsDir: string, rootDir: string): Promise<void> {
-  if (!fs.existsSync(emailsDir)) return
+export async function generateServerRoutes(
+  emailsDir: string,
+  buildDir: string,
+  rootDir: string,
+): Promise<ServerHandlerInfo[]> {
+  if (!fs.existsSync(emailsDir)) return []
 
-  const serverApiDir = join(rootDir, 'server', 'api', 'emails')
+  const handlersDir = join(buildDir, 'email-handlers')
+  const handlers: ServerHandlerInfo[] = []
+
   const jiti = createJiti(rootDir, {
     interopDefault: true,
     moduleCache: false,
     fsCache: false,
   })
 
-  // Ensure the server API directory exists
-  if (!fs.existsSync(serverApiDir)) {
-    fs.mkdirSync(serverApiDir, { recursive: true })
+  // Ensure the handlers output directory exists
+  if (!fs.existsSync(handlersDir)) {
+    fs.mkdirSync(handlersDir, { recursive: true })
   }
 
-  // Recursively collect and generate routes for all email templates
+  // Recursively collect and generate handlers for all email templates
   async function processEmailDirectory(dirPath: string, routePrefix: string = '') {
     const entries = fs.readdirSync(dirPath)
 
@@ -58,26 +75,32 @@ export async function generateServerRoutes(emailsDir: string, rootDir: string): 
         const emailName = entry.replace('.vue', '')
         const emailPath = `${routePrefix}/${emailName}`.replace(/^\//, '')
 
-        // Create the API route file
-        const apiRouteDir = routePrefix
-          ? join(serverApiDir, routePrefix.replace(/^\//, ''))
-          : serverApiDir
+        const handlerDir = routePrefix
+          ? join(handlersDir, routePrefix.replace(/^\//, ''))
+          : handlersDir
 
-        if (!fs.existsSync(apiRouteDir)) {
-          fs.mkdirSync(apiRouteDir, { recursive: true })
+        if (!fs.existsSync(handlerDir)) {
+          fs.mkdirSync(handlerDir, { recursive: true })
         }
 
-        const apiFileName = `${emailName}.post.ts`
-        const apiFilePath = join(apiRouteDir, apiFileName)
+        const handlerFileName = `${emailName}.ts`
+        const handlerFilePath = join(handlerDir, handlerFileName)
         const dataFilePath = join(dirPath, `${emailName}.data.ts`)
         const testDataExampleLiteral = await resolveTestDataExampleLiteral(dataFilePath, emailName, jiti) ?? '{}'
-        const apiTemplate = generateApiRoute(emailName, emailPath, testDataExampleLiteral)
+        const handlerContent = generateApiRoute(emailName, emailPath, testDataExampleLiteral)
 
-        fs.writeFileSync(apiFilePath, apiTemplate, 'utf-8')
-        console.log(`[nuxt-gen-emails] Generated API route: ${apiFilePath}`)
+        fs.writeFileSync(handlerFilePath, handlerContent, 'utf-8')
+        console.log(`[nuxt-gen-emails] Generated API handler: ${handlerFilePath}`)
+
+        handlers.push({
+          route: `/api/emails/${emailPath}`,
+          method: 'post',
+          handlerPath: handlerFilePath,
+        })
       }
     }
   }
 
   await processEmailDirectory(emailsDir)
+  return handlers
 }
