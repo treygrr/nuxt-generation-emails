@@ -8,6 +8,7 @@
     "generate": "nuxt generate"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "my-module": "latest",
     "nuxt": "^4.3.1"
   }
