@@ -88,7 +88,7 @@ function extractPropTypesFromSource(scriptContent: string): Record<string, Extra
   const typeBody = match[1] as string
 
   // Match lines like:  propName: string   or   propName?: number
-  const propPattern = /(\w+)\s*\??\s*:\s*(\w+)/g
+  const propPattern = /(\w+)\s*(?:\?\s*)?:\s*(\w+)/g
   let propMatch: RegExpExecArray | null
 
   while ((propMatch = propPattern.exec(typeBody)) !== null) {
