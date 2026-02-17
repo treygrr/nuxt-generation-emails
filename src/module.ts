@@ -1,7 +1,8 @@
 import { defineNuxtModule, createResolver, addServerImports, addServerHandler, addImports, extendPages } from '@nuxt/kit'
 import fs from 'node:fs'
 import vue from '@vitejs/plugin-vue'
-import { join } from 'pathe'
+import { join, relative } from 'pathe'
+import { consola } from 'consola'
 import { addEmailPages } from './module-utils/add-email-pages'
 import { generateServerRoutes } from './module-utils/generate-server-routes'
 
@@ -95,11 +96,28 @@ export default defineNuxtModule<ModuleOptions>({
     nuxt.options.nitro = { ...nuxt.options.nitro, rollupConfig }
 
     // In dev mode, watch the emails directory for added/removed .vue files.
-    // Nuxt's `watch` config triggers a full dev server restart on matching changes,
-    // which re-runs setup() → extendPages + addServerHandler + generateServerRoutes.
-    if (nuxt.options.dev) {
-      nuxt.options.watch = nuxt.options.watch || []
-      nuxt.options.watch.push(join(emailsDir, '**/*.vue'))
+    if (nuxt.options.dev && fs.existsSync(emailsDir)) {
+      const relDir = relative(nuxt.options.rootDir, emailsDir)
+      consola.info(`[nuxt-gen-emails] Watching for new templates in ${relDir}/`)
+
+      // Add emails directory to Nuxt's native watch list
+      nuxt.options.watch.push(emailsDir + '/**/*.vue')
+
+      nuxt.hook('builder:watch', (event, relativePath) => {
+        const absolutePath = join(nuxt.options.rootDir, relativePath)
+        const rel = relative(emailsDir, absolutePath)
+
+        if (event === 'add') {
+          consola.success(`[nuxt-gen-emails] New template detected: ${rel}`)
+          consola.info('[nuxt-gen-emails] Restarting to register new routes...')
+          nuxt.callHook('restart')
+        }
+        else if (event === 'unlink') {
+          consola.warn(`[nuxt-gen-emails] Template removed: ${rel}`)
+          consola.info('[nuxt-gen-emails] Restarting to update routes...')
+          nuxt.callHook('restart')
+        }
+      })
     }
   },
 })
