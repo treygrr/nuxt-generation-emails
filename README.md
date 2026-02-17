@@ -81,6 +81,14 @@ The directory structure maps directly to routes:
 | `emails/v2/order-confirmation.vue`     | `/__emails/v2/order-confirmation`         | `POST /api/emails/v2/order-confirmation` |
 | `emails/marketing/promo.vue`          | `/__emails/marketing/promo`               | `POST /api/emails/marketing/promo`       |
 
+### Generated routes overview
+
+![Overview of all auto-generated API routes](images/example-overview.png)
+
+### Example route detail
+
+![Detail view of a specific email API route](images/image.png)
+
 ---
 
 ## 🛠️ 3. Adding Templates with the CLI
@@ -216,6 +224,8 @@ const props = withDefaults(defineProps<{
 ## 🖥️ 5. Using the Preview UI
 
 Navigate to `/__emails/` in your browser during development to access the preview interface.
+
+![Preview UI rendering an email template with props editor](images/component-editor-preview.png)
 
 ### What you'll see
 
