@@ -7,18 +7,24 @@ defineOptions({ inheritAttrs: false })
 
 const attrs = useAttrs()
 
+interface PropDefinition {
+  name: string
+  type: 'string' | 'number' | 'boolean' | 'object' | 'unknown'
+}
+
 const props = defineProps<{
-  emailStore?: Record<string, unknown>
+  /** Reactive object containing current prop values (managed by the wrapper) */
+  emailProps?: Record<string, unknown>
+  /** Flat list of prop definitions extracted from the SFC at build time */
+  propDefinitions?: PropDefinition[]
 }>()
 
 const route = useRoute()
 const router = useRouter()
 
-// Check if this is a server request (for API route fetching)
 const isServerRequest = computed(() => route.query.server === 'true')
 
 const templates = computed(() => {
-  // Get all routes that start with /__emails/
   return router.getRoutes()
     .filter(route => route.path.startsWith('/__emails/'))
     .map(route => route.path.replace('/__emails/', ''))
@@ -28,42 +34,19 @@ const templates = computed(() => {
 const showControls = ref(true)
 const copySuccess = ref(false)
 
-type EditableField = {
-  key: string
-  type: 'string' | 'number'
-}
-
-// Extract the data object from the store (it's the reactive object with the actual data)
-// This is where things get spicy. We need to find the ONE object that contains the actual data
-// while ignoring all the utility functions and TypeScript types that Vue so kindly bundles together
-const dataObject = computed<Record<string, unknown> | null>(() => {
-  if (!props.emailStore) return null
-
-  // Find the reactive data object (exclude functions and interfaces)
-  // Translation: fish through the prop soup to find actual data, not the helper functions
-  // We check: is it an object? Is it not null? Does the key NOT start with 'update'?
-  // If yes to all three, BINGO. We found our data. Probably. Maybe. Fingers crossed.
-  const dataKey = Object.keys(props.emailStore).find(key =>
-    typeof props.emailStore![key] === 'object'
-    && props.emailStore![key] !== null
-    && !key.startsWith('update'),
-  )
-
-  return dataKey ? props.emailStore[dataKey] as Record<string, unknown> : null
+// Editable fields: only show string and number props in the sidebar.
+// Complex/object props are shown in the JSON editor in the API tester.
+const editableFields = computed<PropDefinition[]>(() => {
+  if (!props.propDefinitions) return []
+  return props.propDefinitions.filter(p => p.type === 'string' || p.type === 'number')
 })
 
-// Get editable fields recursively (strings and numbers only)
-const editableFields = computed<EditableField[]>(() => {
-  if (!dataObject.value) return []
-
-  return collectEditableFields(dataObject.value)
-})
+const hasControls = computed(() => !!props.emailProps && editableFields.value.length > 0)
 
 const previewRenderKey = computed(() => {
-  if (!dataObject.value) return route.fullPath
-
+  if (!props.emailProps) return route.fullPath
   try {
-    return `${route.fullPath}:${JSON.stringify(dataObject.value)}`
+    return `${route.fullPath}:${JSON.stringify(props.emailProps)}`
   }
   catch {
     return route.fullPath
@@ -71,86 +54,30 @@ const previewRenderKey = computed(() => {
 })
 
 function formatFieldLabel(key: string): string {
-  return key
-    .split('.')
-    .map((segment) => {
-      if (/^\d+$/.test(segment)) return `[${segment}]`
-      const words = segment.replace(/([A-Z])/g, ' $1').trim()
-      return words.charAt(0).toUpperCase() + words.slice(1)
-    })
-    .join(' → ')
+  const words = key.replace(/([A-Z])/g, ' $1').trim()
+  return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
 function getFieldId(key: string): string {
   return `field-${key.replace(/[^\w-]/g, '-')}`
 }
 
-function collectEditableFields(value: unknown, path: string[] = [], visited: WeakSet<object> = new WeakSet()): EditableField[] {
-  if (typeof value === 'string') {
-    return [{ key: path.join('.'), type: 'string' }]
-  }
+function updateProp(key: string, value: string, type: PropDefinition['type']): void {
+  if (!props.emailProps) return
 
-  if (typeof value === 'number') {
-    return [{ key: path.join('.'), type: 'number' }]
-  }
-
-  if (Array.isArray(value)) {
-    return value.flatMap((item, index) => collectEditableFields(item, [...path, String(index)], visited))
-  }
-
-  if (typeof value === 'object' && value !== null) {
-    if (visited.has(value)) return []
-    visited.add(value)
-
-    return Object.entries(value).flatMap(([key, nestedValue]) =>
-      collectEditableFields(nestedValue, [...path, key], visited),
-    )
-  }
-
-  return []
-}
-
-function getValueAtPath(path: string): unknown {
-  if (!dataObject.value) return undefined
-
-  return path.split('.').reduce<unknown>((currentValue, segment) => {
-    if (currentValue === null || currentValue === undefined) return undefined
-
-    const key: string | number = /^\d+$/.test(segment) ? Number(segment) : segment
-    return (currentValue as Record<string | number, unknown>)[key]
-  }, dataObject.value)
-}
-
-function setValueAtPath(path: string, value: string, type: EditableField['type']): void {
-  if (!dataObject.value) return
-
-  const segments = path.split('.')
-  const lastSegment = segments.pop()
-  if (!lastSegment) return
-
-  const parent = segments.reduce<unknown>((currentValue, segment) => {
-    if (currentValue === null || currentValue === undefined) return undefined
-
-    const key: string | number = /^\d+$/.test(segment) ? Number(segment) : segment
-    return (currentValue as Record<string | number, unknown>)[key]
-  }, dataObject.value)
-
-  if (parent === null || parent === undefined || typeof parent !== 'object') return
-
-  const finalKey: string | number = /^\d+$/.test(lastSegment) ? Number(lastSegment) : lastSegment
   if (type === 'number') {
     const parsed = Number(value)
-    ;(parent as Record<string | number, unknown>)[finalKey] = Number.isNaN(parsed) ? 0 : parsed
-    return
+    props.emailProps[key] = Number.isNaN(parsed) ? 0 : parsed
   }
-
-  ;(parent as Record<string | number, unknown>)[finalKey] = value
+  else {
+    props.emailProps[key] = value
+  }
 }
 
 async function copyShareableUrl() {
-  if (!dataObject.value) return
+  if (!props.emailProps) return
 
-  const url = generateShareableUrl(dataObject.value)
+  const url = generateShareableUrl(props.emailProps)
 
   try {
     await navigator.clipboard.writeText(url)
@@ -182,14 +109,14 @@ async function copyShareableUrl() {
       <div class="nge-email-preview__toolbar-actions">
         <EmailTemplateSelector :templates="templates" />
         <button
-          v-if="emailStore"
+          v-if="emailProps"
           class="nge-email-preview__toggle"
           @click="copyShareableUrl"
         >
           {{ copySuccess ? '✓ Copied!' : 'Share URL' }}
         </button>
         <button
-          v-if="emailStore"
+          v-if="hasControls"
           class="nge-email-preview__toggle"
           @click="showControls = !showControls"
         >
@@ -199,37 +126,40 @@ async function copyShareableUrl() {
     </div>
     <div class="nge-email-preview__container">
       <div
-        v-if="emailStore && showControls && dataObject"
+        v-if="hasControls && showControls"
         class="nge-email-preview__controls"
       >
         <div class="nge-email-preview__controls-header">
-          <h3>Template Data</h3>
+          <h3>Template Props</h3>
         </div>
         <div class="nge-email-preview__controls-content">
           <div
             v-for="field in editableFields"
-            :key="field.key"
+            :key="field.name"
             class="nge-email-preview__control"
           >
-            <label :for="getFieldId(field.key)">{{ formatFieldLabel(field.key) }}</label>
+            <label :for="getFieldId(field.name)">{{ formatFieldLabel(field.name) }}</label>
             <input
               v-if="field.type === 'string'"
-              :id="getFieldId(field.key)"
-              :value="getValueAtPath(field.key)"
+              :id="getFieldId(field.name)"
+              :value="emailProps?.[field.name]"
               type="text"
               class="nge-email-preview__input"
-              @input="setValueAtPath(field.key, ($event.target as HTMLInputElement).value, field.type)"
+              @input="updateProp(field.name, ($event.target as HTMLInputElement).value, field.type)"
             >
             <input
               v-else-if="field.type === 'number'"
-              :id="getFieldId(field.key)"
-              :value="getValueAtPath(field.key)"
+              :id="getFieldId(field.name)"
+              :value="emailProps?.[field.name]"
               type="number"
               class="nge-email-preview__input"
-              @input="setValueAtPath(field.key, ($event.target as HTMLInputElement).value, field.type)"
+              @input="updateProp(field.name, ($event.target as HTMLInputElement).value, field.type)"
             >
           </div>
-          <ApiTester :data-object="dataObject" />
+          <ApiTester
+            v-if="emailProps"
+            :data-object="emailProps"
+          />
         </div>
       </div>
       <div class="nge-email-preview__content">

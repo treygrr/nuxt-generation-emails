@@ -1,7 +1,7 @@
 import { join } from 'pathe'
 import fs from 'node:fs'
-import { createJiti } from 'jiti'
 import { generateApiRoute } from '../cli/utils/generate-api-route'
+import { extractPropsFromSFC } from './extract-props'
 
 export interface ServerHandlerInfo {
   route: string
@@ -9,59 +9,32 @@ export interface ServerHandlerInfo {
   handlerPath: string
 }
 
-async function resolveTestDataExampleLiteral(
-  dataFilePath: string,
-  emailName: string,
-  jiti: ReturnType<typeof createJiti>,
-): Promise<string | null> {
-  if (!fs.existsSync(dataFilePath)) return null
-
-  try {
-    const dataModule = await jiti.import<Record<string, unknown>>(dataFilePath)
-    const expectedStoreExportName = `${emailName}Data`
-    const testData = dataModule?.[expectedStoreExportName] ?? dataModule?.testData
-    if (!testData) return null
-
-    return JSON.stringify(testData, null, 2)
-  }
-  catch {
-    return null
-  }
-}
-
 /**
  * Generate server route handlers for all email templates in a directory.
  * Handlers are written to the build directory and returned for registration
  * via addServerHandler(), keeping the user's source tree clean.
  *
+ * Props and defaults are extracted directly from each .vue SFC's defineProps +
+ * withDefaults — no separate .data.ts file needed.
+ *
  * @param emailsDir - Path to the emails directory
  * @param buildDir  - Nuxt build directory (.nuxt)
- * @param rootDir   - Root directory of the project (used for jiti resolution)
  * @returns Array of handler info objects for registration with addServerHandler()
  */
-export async function generateServerRoutes(
+export function generateServerRoutes(
   emailsDir: string,
   buildDir: string,
-  rootDir: string,
-): Promise<ServerHandlerInfo[]> {
+): ServerHandlerInfo[] {
   if (!fs.existsSync(emailsDir)) return []
 
   const handlersDir = join(buildDir, 'email-handlers')
   const handlers: ServerHandlerInfo[] = []
 
-  const jiti = createJiti(rootDir, {
-    interopDefault: true,
-    moduleCache: false,
-    fsCache: false,
-  })
-
-  // Ensure the handlers output directory exists
   if (!fs.existsSync(handlersDir)) {
     fs.mkdirSync(handlersDir, { recursive: true })
   }
 
-  // Recursively collect and generate handlers for all email templates
-  async function processEmailDirectory(dirPath: string, routePrefix: string = '') {
+  function processEmailDirectory(dirPath: string, routePrefix: string = '') {
     const entries = fs.readdirSync(dirPath)
 
     for (const entry of entries) {
@@ -69,7 +42,7 @@ export async function generateServerRoutes(
       const stat = fs.statSync(fullPath)
 
       if (stat.isDirectory()) {
-        await processEmailDirectory(fullPath, `${routePrefix}/${entry}`)
+        processEmailDirectory(fullPath, `${routePrefix}/${entry}`)
       }
       else if (entry.endsWith('.vue')) {
         const emailName = entry.replace('.vue', '')
@@ -83,11 +56,15 @@ export async function generateServerRoutes(
           fs.mkdirSync(handlerDir, { recursive: true })
         }
 
+        // Extract prop defaults from the SFC for the OpenAPI example payload
+        const { defaults } = extractPropsFromSFC(fullPath)
+        const examplePayload = Object.keys(defaults).length > 0
+          ? JSON.stringify(defaults, null, 2)
+          : '{}'
+
         const handlerFileName = `${emailName}.ts`
         const handlerFilePath = join(handlerDir, handlerFileName)
-        const dataFilePath = join(dirPath, `${emailName}.data.ts`)
-        const testDataExampleLiteral = await resolveTestDataExampleLiteral(dataFilePath, emailName, jiti) ?? '{}'
-        const handlerContent = generateApiRoute(emailName, emailPath, testDataExampleLiteral)
+        const handlerContent = generateApiRoute(emailName, emailPath, examplePayload)
 
         fs.writeFileSync(handlerFilePath, handlerContent, 'utf-8')
         console.log(`[nuxt-gen-emails] Generated API handler: ${handlerFilePath}`)
@@ -101,6 +78,6 @@ export async function generateServerRoutes(
     }
   }
 
-  await processEmailDirectory(emailsDir)
+  processEmailDirectory(emailsDir)
   return handlers
 }

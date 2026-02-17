@@ -3,7 +3,6 @@ import { join, relative } from 'pathe'
 import { existsSync, mkdirSync, writeFileSync, readdirSync, statSync } from 'node:fs'
 import { consola } from 'consola'
 import { loadNuxtConfig } from '@nuxt/kit'
-import { generateDataTemplate } from './utils/generate-data-template'
 import { generateVueTemplate } from './utils/generate-vue-template'
 
 interface ParsedTemplateName {
@@ -14,8 +13,6 @@ interface ParsedTemplateName {
 interface TemplateFiles {
   emailPath: string
   vueFile: string
-  dataFile: string
-  apiFile: string
 }
 
 async function findEmailsDir(): Promise<string> {
@@ -128,15 +125,10 @@ function createEmailFiles(
   emailPath: string,
 ): TemplateFiles {
   const vueFile = join(targetDir, `${emailName}.vue`)
-  const dataFile = join(targetDir, `${emailName}.data.ts`)
 
   checkFileExists(vueFile)
 
-  const dataTemplate = generateDataTemplate(emailName)
   const vueTemplate = generateVueTemplate(emailName)
-
-  writeFileSync(dataFile, dataTemplate, 'utf-8')
-  consola.success(`Created data store: ${dataFile}`)
 
   writeFileSync(vueFile, vueTemplate, 'utf-8')
   consola.success(`Created email template: ${vueFile}`)
@@ -144,31 +136,8 @@ function createEmailFiles(
   return {
     emailPath,
     vueFile,
-    dataFile,
-    apiFile: '',
   }
 }
-
-// function createApiRoute(
-//   emailName: string,
-//   emailPath: string,
-//   subDir: string,
-// ): string {
-//   const cwd = process.cwd()
-//   const serverApiDir = join(cwd, 'server', 'api', 'emails')
-//   const apiRouteDir = subDir ? join(serverApiDir, subDir) : serverApiDir
-
-//   ensureDirectoryExists(apiRouteDir, 'API directory')
-
-//   const apiFileName = `${emailName}.post.ts`
-//   const apiFilePath = join(apiRouteDir, apiFileName)
-//   const apiTemplate = generateApiRoute(emailName, emailPath)
-
-//   writeFileSync(apiFilePath, apiTemplate, 'utf-8')
-//   consola.success(`Created API route: ${apiFilePath}`)
-
-//   return apiFilePath
-// }
 
 export default defineCommand({
   meta: {
@@ -198,6 +167,5 @@ export default defineCommand({
     const emailPath = join(subDir, emailName).replace(/\\/g, '/')
 
     createEmailFiles(targetDir, emailName, emailPath)
-    // createApiRoute(emailName, emailPath, subDir)
   },
 })

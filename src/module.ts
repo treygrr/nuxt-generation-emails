@@ -45,10 +45,6 @@ export default defineNuxtModule<ModuleOptions>({
         from: resolver.resolve('./runtime/utils/url-params'),
       },
       {
-        name: 'decodeUrlParamsToStore',
-        from: resolver.resolve('./runtime/utils/url-params'),
-      },
-      {
         name: 'generateShareableUrl',
         from: resolver.resolve('./runtime/utils/url-params'),
       },
@@ -80,8 +76,8 @@ export default defineNuxtModule<ModuleOptions>({
     })
 
     // Generate server route handlers into the build directory and register them programmatically.
-    // This keeps the user's server/ directory clean — no generated files to commit or maintain.
-    const handlers = await generateServerRoutes(emailsDir, nuxt.options.buildDir, nuxt.options.rootDir)
+    // Props and defaults are extracted from each SFC's defineProps + withDefaults.
+    const handlers = generateServerRoutes(emailsDir, nuxt.options.buildDir)
 
     for (const handler of handlers) {
       addServerHandler({

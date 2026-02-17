@@ -2,6 +2,7 @@ import { join } from 'pathe'
 import fs from 'node:fs'
 import type { NuxtPage } from '@nuxt/schema'
 import { generateWrapperComponent } from './generate-wrapper-component'
+import { extractPropsFromSFC } from './extract-props'
 
 export interface AddEmailPagesOptions {
   emailsDir: string
@@ -10,11 +11,13 @@ export interface AddEmailPagesOptions {
 }
 
 /**
- * Recursively add email template pages to the pages array
- * @param dirPath - Path to start processing from
- * @param pages - Array to push generated pages to
- * @param options - Configuration options
- * @param routePrefix - Route prefix (default: '')
+ * Recursively add email template pages to the pages array.
+ *
+ * For each .vue email template, a wrapper component is generated that:
+ * - Extracts prop definitions and defaults directly from the SFC
+ * - Creates a reactive props object for the preview UI
+ * - Handles URL param hydration automatically (no user boilerplate)
+ * - Passes props to both the email component and the layout controls
  */
 export function addEmailPages(
   dirPath: string,
@@ -35,24 +38,19 @@ export function addEmailPages(
       const name = entry.replace('.vue', '')
       const routePath = `/__emails${routePrefix}/${name}`
 
-      // Create a wrapper page that includes both the toolbar and the email component
       const wrapperPath = join(options.buildDir, 'email-wrappers', `${routePrefix}/${name}.vue`.replace(/^\//, ''))
-
-      // Ensure directory exists
       const wrapperDir = join(options.buildDir, 'email-wrappers', routePrefix.replace(/^\//, ''))
       if (!fs.existsSync(wrapperDir)) {
         fs.mkdirSync(wrapperDir, { recursive: true })
       }
 
-      // Check if data store file exists
-      const dataFilePath = fullPath.replace('.vue', '.data.ts')
-      const hasDataStore = fs.existsSync(dataFilePath)
+      // Extract prop definitions directly from the SFC — no .data.ts needed
+      const extractedProps = extractPropsFromSFC(fullPath)
 
-      // Generate wrapper component
       const wrapperContent = generateWrapperComponent(
         options.emailTemplateComponentPath,
         fullPath,
-        hasDataStore ? dataFilePath : undefined,
+        extractedProps,
       )
 
       fs.writeFileSync(wrapperPath, wrapperContent, 'utf-8')

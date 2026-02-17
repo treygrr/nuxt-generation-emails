@@ -1,31 +1,68 @@
+import type { ExtractedProps } from './extract-props'
+
 export function generateWrapperComponent(
   emailsLayoutPath: string,
   emailComponentPath: string,
-  dataStorePath?: string,
+  extractedProps: ExtractedProps,
 ): string {
-  // Check if we have a data store because apparently we need to know this NOW
-  // Double bang (!!) to convert to boolean. JavaScript doesn't have a .exists() method. We suffer.
-  const hasDataStore = !!dataStorePath
+  const hasProps = extractedProps.props.length > 0
 
-  // Generate a string template that is a Vue SFC. Yes, we're generating code that generates UI.
-  // Welcome to meta-programming, where your brain hurts and the stack traces are meaningless.
+  // Build the defaults object literal for the reactive props state
+  const defaultsLiteral = JSON.stringify(extractedProps.defaults, null, 2)
+
+  // Build the prop definitions array literal for the preview UI
+  const propDefsLiteral = JSON.stringify(
+    extractedProps.props.map(p => ({ name: p.name, type: p.type })),
+    null,
+    2,
+  )
+
+  const scriptClose = '<' + '/script>'
+  const templateOpen = '<' + 'template>'
+  const templateClose = '<' + '/template>'
+
   return `<script setup lang="ts">
-import { definePageMeta } from '#imports'
+import { reactive, definePageMeta, onMounted } from '#imports'
 import EmailsLayout from '${emailsLayoutPath}'
-import EmailComponent from '${emailComponentPath}'${hasDataStore
-  ? `
-import * as emailStore from '${dataStorePath}'` // Conditionally import the store if it exists
-  : ''}  // Otherwise just... don't. Simple. Elegant. Chaos.
+import EmailComponent from '${emailComponentPath}'
 
-definePageMeta({
-  layout: false,  // No layout because we ARE the layout. Mind = blown.
+definePageMeta({ layout: false })
+${hasProps
+? `
+const propDefaults = ${defaultsLiteral}
+const propDefinitions = ${propDefsLiteral}
+
+// Reactive state derived from the template's withDefaults — drives both
+// the live preview and the sidebar controls.
+const emailProps = reactive<Record<string, unknown>>({ ...propDefaults })
+
+// Hydrate from URL params on mount so shared links restore state.
+onMounted(() => {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search)
+    params.forEach((value, key) => {
+      if (key in emailProps) {
+        const current = emailProps[key]
+        if (typeof current === 'number') {
+          const n = Number(value)
+          if (!Number.isNaN(n)) emailProps[key] = n
+        } else if (typeof current === 'boolean') {
+          emailProps[key] = value === 'true'
+        } else {
+          emailProps[key] = value
+        }
+      }
+    })
+  }
 })
-</script>
+`
+: ''}
+${scriptClose}
 
-<template>
-  <EmailsLayout${hasDataStore ? ' :email-store="emailStore"' : ''}>  <!-- Pass store as prop if we have it -->
-    <EmailComponent />  <!-- The actual email content sits here, blissfully unaware of the complexity above -->
+${templateOpen}
+  <EmailsLayout${hasProps ? ' :email-props="emailProps" :prop-definitions="propDefinitions"' : ''}>
+    <EmailComponent${hasProps ? ' v-bind="emailProps"' : ''} />
   </EmailsLayout>
-</template>
+${templateClose}
 `
 }

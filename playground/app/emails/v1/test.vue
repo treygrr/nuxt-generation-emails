@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
-import { testData } from './test.data'
+import { computed } from 'vue'
 import {
   Body,
   Button,
@@ -21,15 +20,52 @@ defineOptions({
   name: 'TestNge',
 })
 
-onMounted(() => {
-  decodeUrlParamsToStore(testData)
+const props = withDefaults(defineProps<{
+  previewText: string
+  customerFirstName: string
+  orderNumber: string
+  orderDate: string
+  deliveryEstimate: string
+  storeName: string
+  supportEmail: string
+  orderUrl: string
+  shippingMethod: string
+  paymentMethod: string
+  shippingCost: number
+  tax: number
+}>(), {
+  previewText: 'Your order has been confirmed and is being prepared for shipment.',
+  customerFirstName: 'Avery',
+  orderNumber: 'NGE-904381',
+  orderDate: 'February 13, 2026',
+  deliveryEstimate: 'February 18, 2026',
+  storeName: 'Northwind Outfitters',
+  supportEmail: 'support@northwindoutfitters.com',
+  orderUrl: 'https://example.com/orders/NGE-904381',
+  shippingMethod: 'Standard (3-5 business days)',
+  paymentMethod: 'Visa •••• 4242',
+  shippingCost: 8.99,
+  tax: 14.82,
 })
 
-const subtotal = computed(() => {
-  return testData.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0)
-})
+const items = [
+  { name: 'Alpine Trail Runner — Moss / Size 10', quantity: 1, unitPrice: 89.00 },
+  { name: 'Merino Wool Hiking Socks (3-pack)', quantity: 1, unitPrice: 24.00 },
+  { name: 'Quick-Dry Trail Cap — Slate', quantity: 1, unitPrice: 23.00 },
+]
 
-const total = computed(() => subtotal.value + testData.shippingCost + testData.tax)
+const shippingAddress = {
+  name: 'Avery Johnson',
+  line1: '2241 Pine Street',
+  line2: 'Apt 8C',
+  city: 'Seattle',
+  state: 'WA',
+  postalCode: '98101',
+  country: 'United States',
+}
+
+const subtotal = computed(() => items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0))
+const total = computed(() => subtotal.value + props.shippingCost + props.tax)
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
@@ -48,7 +84,7 @@ function formatCurrency(value: number): string {
         :fallback-font-family="['Arial', 'Helvetica', 'sans-serif']"
         :web-font="{ url: 'https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2', format: 'woff2' }"
       />
-      <Preview>{{ testData.previewText }}</Preview>
+      <Preview>{{ props.previewText }}</Preview>
       <Body
         class="bg-slate-100 py-10 text-slate-900"
         style="font-family: 'DM Sans', Arial, Helvetica, sans-serif;"
@@ -56,7 +92,7 @@ function formatCurrency(value: number): string {
         <Container class="mx-auto w-full max-w-[640px] rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
           <Section>
             <Text class="m-0 text-xs font-semibold uppercase tracking-wide text-indigo-600">
-              {{ testData.storeName }}
+              {{ props.storeName }}
             </Text>
             <Heading
               as="h1"
@@ -65,19 +101,19 @@ function formatCurrency(value: number): string {
               Your order is confirmed 🎉
             </Heading>
             <Text class="m-0 text-base leading-7 text-slate-600">
-              Hi {{ testData.customerFirstName }}, thanks for your purchase. We’re getting your order ready to ship.
+              Hi {{ props.customerFirstName }}, thanks for your purchase. We’re getting your order ready to ship.
             </Text>
           </Section>
 
           <Section class="mt-6 rounded-lg bg-slate-50 p-5">
             <Text class="m-0 text-sm text-slate-600">
-              Order #<span class="font-semibold text-slate-900">{{ testData.orderNumber }}</span>
+              Order #<span class="font-semibold text-slate-900">{{ props.orderNumber }}</span>
             </Text>
             <Text class="m-0 mt-2 text-sm text-slate-600">
-              Placed on {{ testData.orderDate }}
+              Placed on {{ props.orderDate }}
             </Text>
             <Text class="m-0 mt-2 text-sm text-slate-600">
-              Estimated delivery: <span class="font-semibold text-slate-900">{{ testData.deliveryEstimate }}</span>
+              Estimated delivery: <span class="font-semibold text-slate-900">{{ props.deliveryEstimate }}</span>
             </Text>
           </Section>
 
@@ -90,7 +126,7 @@ function formatCurrency(value: number): string {
             </Heading>
 
             <Section
-              v-for="(item, index) in testData.items"
+              v-for="(item, index) in items"
               :key="`${item.name}-${index}`"
               class="rounded-md border border-slate-200 p-4"
               :class="index === 0 ? '' : 'mt-3'"
@@ -122,11 +158,11 @@ function formatCurrency(value: number): string {
             </Text>
             <Text class="m-0 mt-2 flex justify-between text-sm text-slate-700">
               <span>Shipping</span>
-              <span>{{ formatCurrency(testData.shippingCost) }}</span>
+              <span>{{ formatCurrency(props.shippingCost) }}</span>
             </Text>
             <Text class="m-0 mt-2 flex justify-between text-sm text-slate-700">
               <span>Tax</span>
-              <span>{{ formatCurrency(testData.tax) }}</span>
+              <span>{{ formatCurrency(props.tax) }}</span>
             </Text>
             <Text class="m-0 mt-3 flex justify-between text-base font-semibold text-slate-900">
               <span>Total</span>
@@ -142,23 +178,23 @@ function formatCurrency(value: number): string {
               Shipping to
             </Heading>
             <Text class="m-0 text-sm leading-6 text-slate-700">
-              {{ testData.shippingAddress.name }}<br>
-              {{ testData.shippingAddress.line1 }}<br>
-              <span v-if="testData.shippingAddress.line2">{{ testData.shippingAddress.line2 }}<br></span>
-              {{ testData.shippingAddress.city }}, {{ testData.shippingAddress.state }} {{ testData.shippingAddress.postalCode }}<br>
-              {{ testData.shippingAddress.country }}
+              {{ shippingAddress.name }}<br>
+              {{ shippingAddress.line1 }}<br>
+              <span v-if="shippingAddress.line2">{{ shippingAddress.line2 }}<br></span>
+              {{ shippingAddress.city }}, {{ shippingAddress.state }} {{ shippingAddress.postalCode }}<br>
+              {{ shippingAddress.country }}
             </Text>
             <Text class="m-0 mt-3 text-sm text-slate-700">
-              Shipping method: {{ testData.shippingMethod }}
+              Shipping method: {{ props.shippingMethod }}
             </Text>
             <Text class="m-0 mt-1 text-sm text-slate-700">
-              Payment method: {{ testData.paymentMethod }}
+              Payment method: {{ props.paymentMethod }}
             </Text>
           </Section>
 
           <Section class="mt-8 text-center">
             <Button
-              :href="testData.orderUrl"
+              :href="props.orderUrl"
               class="rounded-md bg-indigo-600 px-6 py-3 text-sm font-semibold text-white no-underline"
             >
               View order details
@@ -166,10 +202,10 @@ function formatCurrency(value: number): string {
             <Text class="m-0 mt-4 text-sm text-slate-600">
               Need help? Contact us at
               <Link
-                :href="`mailto:${testData.supportEmail}`"
+                :href="`mailto:${props.supportEmail}`"
                 class="text-indigo-600 no-underline"
               >
-                {{ testData.supportEmail }}
+                {{ props.supportEmail }}
               </Link>
             </Text>
           </Section>

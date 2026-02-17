@@ -23,43 +23,6 @@ export function encodeStoreToUrlParams(store: Record<string, unknown>): string {
 }
 
 /**
- * Decode URL search parameters and update a reactive store
- */
-export function decodeUrlParamsToStore(store: Record<string, unknown>): void {
-  // SSR check because window doesn't exist on the server. Thanks, JavaScript!
-  if (typeof window === 'undefined') return
-
-  const params = new URLSearchParams(window.location.search)
-
-  // Time to parse URL params and pray they're in the format we expect
-  params.forEach((value, key) => {
-    // Only update keys that exist in the store. No sneaky injections here, hackers.
-    if (key in store) {
-      const currentValue = store[key]
-
-      // Type coercion based on the current store value type
-      // Because URLSearchParams gives us strings and we need to reverse-engineer the original type
-      // This is fine. Everything is fine. I'm fine.
-      if (typeof currentValue === 'number') {
-        const numValue = Number(value)
-        // NaN check because JavaScript thinks "hello" converted to Number is a great idea
-        if (!Number.isNaN(numValue)) {
-          store[key] = numValue
-        }
-      }
-      else if (typeof currentValue === 'boolean') {
-        // String 'true' to boolean true. Because of course it's a string.
-        store[key] = value === 'true'
-      }
-      else {
-        // It's a string or we've given up. Probably both.
-        store[key] = value
-      }
-    }
-  })
-}
-
-/**
  * Generate a shareable URL for the current template with encoded data
  */
 export function generateShareableUrl(store: Record<string, unknown>): string {
