@@ -36,20 +36,23 @@ export function extractPropsFromSFC(filePath: string): ExtractedProps {
     const props: ExtractedProp[] = []
     const defaults: Record<string, unknown> = {}
 
-    // compileScript exposes the resolved props on the `__propsOptions` or via
-    // the `bindings` / `__props` AST nodes.  The most reliable approach is to
-    // look at the compiled result's `props` array, which is populated when
-    // `defineProps` is used.
-
-    // For type-only defineProps<{...}>(), the compiler resolves types into
-    // `compiled.props` — a record keyed by prop name with `{ type, required }`.
-    type PropDef = { type?: unknown, required?: boolean, default?: unknown }
-    const compiledAny = compiled as unknown as { props?: Record<string, PropDef> }
-    if (compiledAny.props) {
-      for (const [name, propDef] of Object.entries(compiledAny.props)) {
-        const propType = inferPropType(propDef.type)
-        props.push({ name, type: propType })
+    // The compiler's `bindings` record marks each prop with the value "props".
+    // This is the most reliable indicator for type-only defineProps<{...}>().
+    const propNames: string[] = []
+    if (compiled.bindings) {
+      for (const [name, binding] of Object.entries(compiled.bindings)) {
+        if (binding === 'props') {
+          propNames.push(name)
+        }
       }
+    }
+
+    // Parse prop types from the defineProps<{...}>() type literal in source
+    const propTypes = extractPropTypesFromSource(descriptor.scriptSetup.content)
+
+    for (const name of propNames) {
+      const type = propTypes[name] ?? 'unknown'
+      props.push({ name, type })
     }
 
     // Extract defaults from withDefaults() by parsing the source AST.
@@ -72,22 +75,43 @@ export function extractPropsFromSFC(filePath: string): ExtractedProps {
 }
 
 /**
- * Infer a simplified type string from the Vue compiler's type constructor(s).
+ * Parse the type parameter of `defineProps<{ ... }>()` to extract prop names and
+ * their TypeScript types, mapping them to the simplified ExtractedProp type set.
  */
-function inferPropType(type: unknown): ExtractedProp['type'] {
-  if (!type) return 'unknown'
+function extractPropTypesFromSource(scriptContent: string): Record<string, ExtractedProp['type']> {
+  const result: Record<string, ExtractedProp['type']> = {}
 
-  // type can be a constructor (String, Number) or an array of constructors
-  const types = Array.isArray(type) ? type : [type]
+  // Match the type parameter inside defineProps<{ ... }>()
+  const match = scriptContent.match(/defineProps\s*<\s*\{([\s\S]*?)\}\s*>\s*\(/)
+  if (!match) return result
 
-  for (const t of types) {
-    if (t === String) return 'string'
-    if (t === Number) return 'number'
-    if (t === Boolean) return 'boolean'
-    if (t === Object || t === Array) return 'object'
+  const typeBody = match[1] as string
+
+  // Match lines like:  propName: string   or   propName?: number
+  const propPattern = /(\w+)\s*\??\s*:\s*(\w+)/g
+  let propMatch: RegExpExecArray | null
+
+  while ((propMatch = propPattern.exec(typeBody)) !== null) {
+    const name = propMatch[1] as string
+    const tsType = propMatch[2] as string
+
+    switch (tsType.toLowerCase()) {
+      case 'string':
+        result[name] = 'string'
+        break
+      case 'number':
+        result[name] = 'number'
+        break
+      case 'boolean':
+        result[name] = 'boolean'
+        break
+      default:
+        result[name] = 'object'
+        break
+    }
   }
 
-  return 'unknown'
+  return result
 }
 
 /**
