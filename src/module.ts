@@ -1,10 +1,18 @@
-import { defineNuxtModule, createResolver, addServerImports, addServerHandler, addImports, extendPages } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerImports, addServerHandler, addImports, addTypeTemplate, extendPages } from '@nuxt/kit'
 import fs from 'node:fs'
 import vue from '@vitejs/plugin-vue'
 import { join, relative } from 'pathe'
 import { consola } from 'consola'
 import { addEmailPages } from './module-utils/add-email-pages'
 import { generateServerRoutes } from './module-utils/generate-server-routes'
+
+/** Payload passed to the `nuxt-gen-emails:send` Nitro runtime hook. */
+export interface NuxtGenEmailsSendPayload {
+  /** The rendered HTML string of the email template. */
+  html: string
+  /** Arbitrary data forwarded from the request body (e.g. `to`, `subject`). */
+  data: Record<string, unknown>
+}
 
 // Module options TypeScript interface definition
 export interface ModuleOptions {
@@ -26,6 +34,29 @@ export default defineNuxtModule<ModuleOptions>({
   },
   async setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
+
+    // Inject Nitro runtime hook type augmentation into .nuxt/types/
+    // Pass both nuxt and nitro contexts so the types are visible in both client and server tsconfigs
+    addTypeTemplate({
+      filename: 'types/nuxt-gen-emails-nitro.d.ts',
+      getContents: () => `
+export interface NuxtGenEmailsSendPayload {
+  html: string
+  data: Record<string, unknown>
+}
+
+declare module 'nitropack' {
+  interface NitroRuntimeHooks {
+    'nuxt-gen-emails:send': (payload: NuxtGenEmailsSendPayload) => void | Promise<void>
+  }
+}
+declare module 'nitropack/types' {
+  interface NitroRuntimeHooks {
+    'nuxt-gen-emails:send': (payload: NuxtGenEmailsSendPayload) => void | Promise<void>
+  }
+}
+`,
+    }, { nuxt: true, nitro: true })
 
     // Register the emails directory in the app directory
     const configuredEmailDir = options.emailDir ?? 'emails'
