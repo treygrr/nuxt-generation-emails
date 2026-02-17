@@ -266,37 +266,50 @@ export default defineNitroPlugin((nitro) => {
 })
 ```
 
-### SendGrid example
+### SendGrid example (using the SDK)
+
+Install the SendGrid SDK in your project:
+
+```bash
+npm install @sendgrid/mail
+```
+
+Set your API key as an environment variable (e.g. in `.env`):
+
+```
+SENDGRID_API_KEY=SG.your_api_key_here
+```
+
+Then create the server plugin:
 
 ```ts
 // server/plugins/gen-emails.ts
-export default defineNitroPlugin((nitro) => {
-  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }: { html: string, data: Record<string, unknown> }) => {
-    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email: data.to as string }],
-            subject: (data.subject as string) || 'No Subject',
-          },
-        ],
-        from: { email: (data.from as string) || 'noreply@yourdomain.com' },
-        content: [{ type: 'text/html', value: html }],
-      }),
-    })
+import sgMail from '@sendgrid/mail'
 
-    if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`SendGrid API error (${response.status}): ${error}`)
+export default defineNitroPlugin((nitro) => {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY!)
+
+  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }: { html: string, data: Record<string, unknown> }) => {
+    const msg = {
+      to: data.to as string,
+      from: (data.from as string) || 'noreply@yourdomain.com',
+      subject: (data.subject as string) || 'No Subject',
+      html,
+    }
+
+    try {
+      const [response] = await sgMail.send(msg)
+      console.log('[gen-emails] Email sent successfully, status:', response.statusCode)
+    }
+    catch (error) {
+      console.error('[gen-emails] SendGrid error:', error)
+      throw error
     }
   })
 })
 ```
+
+> **Note:** The playground included with this module uses this exact implementation. See [`playground/server/plugins/gen-emails.ts`](playground/server/plugins/gen-emails.ts) for the working reference.
 
 ### How it works
 
