@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute } from '#imports'
+import { useRoute, useCookie } from '#imports'
 
 const props = defineProps<{
   dataObject: Record<string, unknown>
@@ -13,6 +13,13 @@ const responseData = ref<unknown>(null)
 const error = ref<string>('')
 const copySuccess = ref(false)
 const copyHtmlSuccess = ref(false)
+const lastUsedEmail = useCookie<string>('nuxt-gen-emails-last-email', {
+  default: () => '',
+  sameSite: 'lax',
+})
+const testEmailTo = ref(lastUsedEmail.value || '')
+const sendStatus = ref<'idle' | 'sending' | 'success' | 'error'>('idle')
+let sendStatusTimeout: ReturnType<typeof setTimeout> | null = null
 
 const apiEndpoint = computed(() => {
   const templatePath = route.path.replace('/__emails/', '')
@@ -59,6 +66,59 @@ async function testApi() {
   }
 }
 
+async function sendTestEmail() {
+  if (!testEmailTo.value.trim()) {
+    error.value = 'Please enter a recipient email address.'
+    sendStatus.value = 'error'
+    return
+  }
+
+  lastUsedEmail.value = testEmailTo.value.trim()
+
+  const payload: Record<string, unknown> = {
+    ...props.dataObject,
+    to: lastUsedEmail.value,
+  }
+
+  isLoading.value = true
+  sendStatus.value = 'sending'
+  error.value = ''
+  response.value = ''
+
+  try {
+    const result = await $fetch(apiEndpoint.value, {
+      method: 'POST',
+      body: payload,
+    })
+
+    responseData.value = result
+    response.value = JSON.stringify(result, null, 2)
+    sendStatus.value = 'success'
+    if (sendStatusTimeout) {
+      clearTimeout(sendStatusTimeout)
+    }
+    sendStatusTimeout = setTimeout(() => {
+      sendStatus.value = 'idle'
+    }, 2000)
+  }
+  catch (err: unknown) {
+    error.value = err instanceof Error ? err.message : 'Failed to send test email'
+    responseData.value = err
+    response.value = JSON.stringify(err, null, 2)
+    sendStatus.value = 'error'
+  }
+  finally {
+    isLoading.value = false
+  }
+}
+
+function getSendButtonLabel() {
+  if (sendStatus.value === 'sending') return 'Sending...'
+  if (sendStatus.value === 'success') return 'Sent ✓'
+  if (sendStatus.value === 'error') return 'Failed ✕'
+  return 'Send Test Email'
+}
+
 async function copyResponse() {
   if (!response.value) return
 
@@ -94,13 +154,15 @@ async function copyHtml() {
   <div class="nge-api-tester">
     <div class="nge-api-tester__header">
       <h4>API Tester</h4>
-      <button
-        class="nge-api-tester__button"
-        :disabled="isLoading"
-        @click="testApi"
-      >
-        {{ isLoading ? 'Testing...' : 'Test POST Request' }}
-      </button>
+      <div class="nge-api-tester__actions">
+        <button
+          class="nge-api-tester__button"
+          :disabled="isLoading"
+          @click="testApi"
+        >
+          {{ isLoading ? 'Testing...' : 'Test POST Request' }}
+        </button>
+      </div>
     </div>
     <div class="nge-api-tester__endpoint">
       <code>POST {{ apiEndpoint }}</code>
@@ -140,6 +202,23 @@ async function copyHtml() {
         placeholder="Response will appear here..."
       />
     </div>
+    <hr class="nge-api-tester__divider">
+    <div class="nge-api-tester__send-email-row">
+      <input
+        v-model="testEmailTo"
+        type="email"
+        class="nge-api-tester__email-input"
+        placeholder="test@example.com"
+        @keydown.enter.prevent="sendTestEmail"
+      >
+      <button
+        class="nge-api-tester__button"
+        :disabled="isLoading"
+        @click="sendTestEmail"
+      >
+        {{ getSendButtonLabel() }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -155,6 +234,46 @@ async function copyHtml() {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.nge-api-tester__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nge-api-tester__send-email-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.nge-api-tester__send-email-row .nge-api-tester__button {
+  width: 100%;
+}
+
+.nge-api-tester__divider {
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  margin: 8px 0;
+}
+
+.nge-api-tester__email-input {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 12px;
+  color: #111827;
+  background: #fff;
+}
+
+.nge-api-tester__email-input:focus {
+  outline: none;
+  border-color: #047857;
+  box-shadow: 0 0 0 2px rgba(4, 120, 87, 0.15);
 }
 
 .nge-api-tester__header h4 {
