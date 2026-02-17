@@ -78,6 +78,7 @@ async function sendTestEmail() {
   const payload: Record<string, unknown> = {
     ...props.dataObject,
     to: lastUsedEmail.value,
+    subject: `Test email ${Date.now()}`,
   }
 
   isLoading.value = true

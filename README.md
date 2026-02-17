@@ -246,40 +246,55 @@ http://localhost:3000/__emails/v2/welcome
 
 ---
 
-## 📨 6. Wiring Up Email Sending (SendGrid Example)
+## 📨 6. Wiring Up Email Sending
 
-The module generates `POST` endpoints for every template that render the email HTML. To actually **send** emails, provide a `sendGenEmails` function in your module config.
+The module generates `POST` endpoints for every template that render the email HTML. To actually **send** emails, register a Nitro server plugin that listens for the `nuxt-gen-emails:send` hook.
 
-### With SendGrid
+### Create a server plugin
 
-Install the SendGrid SDK:
-
-```bash
-npm install @sendgrid/mail
-```
-
-Configure the handler in `nuxt.config.ts`:
+Create a file at `server/plugins/gen-emails.ts` in your project:
 
 ```ts
-import sgMail from '@sendgrid/mail'
+// server/plugins/gen-emails.ts
+export default defineNitroPlugin((nitro) => {
+  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }: { html: string, data: Record<string, unknown> }) => {
+    // Your email sending logic here.
+    // `html` is the fully rendered email HTML string.
+    // `data` is the original request body (includes template props + `to`, `subject`, `from`, etc.)
+    console.log('Sending email to:', data.to)
+  })
+})
+```
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY!)
+### SendGrid example
 
-export default defineNuxtConfig({
-  modules: ['nuxt-generation-emails'],
+```ts
+// server/plugins/gen-emails.ts
+export default defineNitroPlugin((nitro) => {
+  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }: { html: string, data: Record<string, unknown> }) => {
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.SENDGRID_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [
+          {
+            to: [{ email: data.to as string }],
+            subject: (data.subject as string) || 'No Subject',
+          },
+        ],
+        from: { email: (data.from as string) || 'noreply@yourdomain.com' },
+        content: [{ type: 'text/html', value: html }],
+      }),
+    })
 
-  nuxtGenerationEmails: {
-    emailDir: 'emails',
-
-    sendGenEmails: async (html, data) => {
-      await sgMail.send({
-        to: data.to as string,
-        from: 'noreply@yourdomain.com',
-        subject: data.subject as string || 'No Subject',
-        html,
-      })
-    },
-  },
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`SendGrid API error (${response.status}): ${error}`)
+    }
+  })
 })
 ```
 
@@ -289,7 +304,7 @@ When a `POST` request hits an email endpoint (e.g., `/api/emails/v1/order-confir
 
 1. The request body is read and passed as props to the Vue email template
 2. `@vue-email/render` renders the template to an HTML string
-3. If `sendGenEmails` is configured, it's called with the rendered `html` and the original request `data`
+3. The Nitro hook `nuxt-gen-emails:send` is called with `{ html, data }` — your plugin handles the actual sending
 4. The response always returns `{ success: true, html: "..." }` so you can inspect the rendered output
 
 ### Example API call
@@ -307,20 +322,6 @@ curl -X POST http://localhost:3000/api/emails/v1/order-confirmation \
   }'
 ```
 
-### Using the Nitro hook alternative
-
-If you prefer not to configure the handler in `nuxt.config.ts`, you can listen for the `nuxt-gen-emails:send` hook in a Nitro plugin:
-
-```ts
-// server/plugins/email-sender.ts
-export default defineNitroPlugin((nitro) => {
-  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }) => {
-    // Your sending logic here
-    console.log('Sending email with data:', data)
-  })
-})
-```
-
 ---
 
 ## 🔧 7. Module Options
@@ -328,9 +329,14 @@ export default defineNitroPlugin((nitro) => {
 | Option           | Type       | Default    | Description                                                        |
 |------------------|------------|------------|--------------------------------------------------------------------|
 | `emailDir`       | `string`   | `'emails'` | Directory containing email templates (relative to `srcDir`)        |
-| `sendGenEmails`  | `function` | `undefined`| Async function called with `(html, data)` when an email is sent    |
 
 Full config key: `nuxtGenerationEmails`
+
+### Nitro hook
+
+| Hook                      | Payload                                      | Description                                  |
+|---------------------------|-----------------------------------------------|----------------------------------------------|
+| `nuxt-gen-emails:send`    | `{ html: string, data: Record<string, unknown> }` | Called after rendering; wire your send logic here |
 
 ---
 
@@ -345,7 +351,7 @@ The module auto-imports these utilities for convenience:
 
 ### Server-side
 
-- `getSendGenEmailsHandler()` — Retrieve the configured `sendGenEmails` function (used internally by generated routes)
+- `encodeStoreToUrlParams(store)` — Encode a props object into URL search parameters (also available server-side)
 
 ---
 

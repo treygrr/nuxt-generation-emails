@@ -10,8 +10,6 @@ import { generateServerRoutes } from './module-utils/generate-server-routes'
 export interface ModuleOptions {
   /** Directory containing email templates; resolved from srcDir when relative. */
   emailDir?: string
-
-  sendGenEmails?: (html: string, data: Record<string, unknown>) => Promise<void> | void
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -33,10 +31,9 @@ export default defineNuxtModule<ModuleOptions>({
     const configuredEmailDir = options.emailDir ?? 'emails'
 
     const emailsDir = join(nuxt.options.srcDir, configuredEmailDir)
-    // Expose emails directory and security config via runtime config
+    // Expose emails directory via runtime config (functions cannot be serialized)
     nuxt.options.runtimeConfig.nuxtGenEmails = {
       emailsDir,
-      sendGenEmails: options.sendGenEmails,
     }
 
     // Add client auto-imports for URL params utilities
@@ -56,10 +53,6 @@ export default defineNuxtModule<ModuleOptions>({
       {
         name: 'encodeStoreToUrlParams',
         from: resolver.resolve('./runtime/utils/url-params'),
-      },
-      {
-        name: 'getSendGenEmailsHandler',
-        from: resolver.resolve('./runtime/server/utils/send-gen-emails'),
       },
     ])
 
