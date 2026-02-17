@@ -2,11 +2,11 @@
 import { ref, computed, onUnmounted, onMounted } from 'vue'
 import { useRoute, useRouter } from '#imports'
 
-interface TreeNode {
+interface FlatNode {
   name: string
   path: string
   isDirectory: boolean
-  children?: TreeNode[]
+  depth: number
 }
 
 const props = defineProps<{
@@ -22,47 +22,72 @@ const currentTemplate = computed(() => {
   return route.path.replace('/__emails/', '') || 'Select a template'
 })
 
-// Build tree structure from flat template list
-// Time to convert a flat array into a nested tree structure
-// Because humans think in hierarchies and computers think in flat arrays
-// The eternal struggle continues
-const templateTree = computed(() => {
-  const tree: TreeNode[] = []
+// Build a flat list of all nodes (directories + files) with depth info.
+// Directories are only "expanded" into their children when toggled open.
+const flatNodes = computed<FlatNode[]>(() => {
+  // First, collect all unique directory paths and file entries
+  const dirSet = new Set<string>()
+  const entries: { parts: string[], template: string }[] = []
 
-  // For each template path like 'v1/test-email', we need to create nested objects
   props.templates.forEach((template) => {
-    const parts = template.split('/') // ['v1', 'test-email']
-    let currentLevel = tree // Start at the root, obviously
+    const parts = template.split('/')
+    entries.push({ parts, template })
+    // Register every intermediate directory path
+    for (let i = 1; i < parts.length; i++) {
+      dirSet.add(parts.slice(0, i).join('/'))
+    }
+  })
 
-    // Loop through each part of the path and build the tree
+  // Build a sorted tree structure, then flatten it respecting expanded state
+  interface TreeNode {
+    name: string
+    path: string
+    isDirectory: boolean
+    children: TreeNode[]
+  }
+
+  const root: TreeNode[] = []
+
+  entries.forEach(({ parts, template }) => {
+    let currentLevel = root
     parts.forEach((part, index) => {
-      const isLast = index === parts.length - 1 // Is this the actual file or just a folder?
-      const path = parts.slice(0, index + 1).join('/') // Build incremental path
-
-      // Check if this node already exists (because we might have multiple files in same folder)
-      let existing = currentLevel.find(node => node.name === part)
-
+      const isLast = index === parts.length - 1
+      const path = parts.slice(0, index + 1).join('/')
+      let existing = currentLevel.find(n => n.name === part && n.isDirectory === !isLast)
       if (!existing) {
-        // Create a new node because this part of the path doesn't exist yet
-        // TypeScript is yelling at me but I know what I'm doing (I don't)
         existing = {
           name: part,
           path: isLast ? template : path,
           isDirectory: !isLast,
-          children: !isLast ? [] : undefined, // Folders get children, files get undefined. Makes total sense.
+          children: [],
         }
         currentLevel.push(existing)
       }
-
-      // If not the last part and has children, dive deeper into the tree
-      // Recursion's cooler cousin: iteration with state mutation
-      if (!isLast && existing.children) {
+      if (!isLast) {
         currentLevel = existing.children
       }
     })
   })
 
-  return tree
+  // Flatten the tree, only descending into expanded directories
+  const result: FlatNode[] = []
+
+  function flatten(nodes: TreeNode[], depth: number) {
+    // Sort: directories first, then alphabetically
+    const sorted = [...nodes].sort((a, b) => {
+      if (a.isDirectory !== b.isDirectory) return a.isDirectory ? -1 : 1
+      return a.name.localeCompare(b.name)
+    })
+    for (const node of sorted) {
+      result.push({ name: node.name, path: node.path, isDirectory: node.isDirectory, depth })
+      if (node.isDirectory && expandedDirs.value.has(node.path)) {
+        flatten(node.children, depth + 1)
+      }
+    }
+  }
+
+  flatten(root, 0)
+  return result
 })
 
 function selectTemplate(template: string) {
@@ -70,8 +95,7 @@ function selectTemplate(template: string) {
   isOpen.value = false
 }
 
-function toggleDirectory(path: string, event: MouseEvent) {
-  event.stopPropagation()
+function toggleDirectory(path: string) {
   if (expandedDirs.value.has(path)) {
     expandedDirs.value.delete(path)
   }
@@ -84,7 +108,6 @@ function toggleDropdown() {
   isOpen.value = !isOpen.value
 }
 
-// Close dropdown when clicking outside
 function handleClickOutside(event: MouseEvent) {
   const target = event.target as HTMLElement
   if (!target.closest('.nge-template-selector')) {
@@ -130,54 +153,38 @@ onUnmounted(() => {
       class="nge-template-selector__dropdown"
     >
       <template
-        v-for="node in templateTree"
+        v-for="node in flatNodes"
         :key="node.path"
       >
         <div
           v-if="node.isDirectory"
-          class="nge-template-selector__directory"
+          class="nge-template-selector__dir-header"
+          :style="{ paddingLeft: `${16 + node.depth * 16}px` }"
+          @click.stop="toggleDirectory(node.path)"
         >
-          <div
-            class="nge-template-selector__dir-header"
-            @click="toggleDirectory(node.path, $event)"
+          <svg
+            class="nge-template-selector__dir-icon"
+            :class="{ 'nge-template-selector__dir-icon--open': expandedDirs.has(node.path) }"
+            width="12"
+            height="12"
+            viewBox="0 0 16 16"
+            fill="none"
           >
-            <svg
-              class="nge-template-selector__dir-icon"
-              :class="{ 'nge-template-selector__dir-icon--open': expandedDirs.has(node.path) }"
-              width="12"
-              height="12"
-              viewBox="0 0 16 16"
-              fill="none"
-            >
-              <path
-                d="M6 4L10 8L6 12"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              />
-            </svg>
-            <span>{{ node.name }}</span>
-          </div>
-          <div
-            v-if="expandedDirs.has(node.path)"
-            class="nge-template-selector__dir-content"
-          >
-            <div
-              v-for="child in node.children"
-              :key="child.path"
-              class="nge-template-selector__item"
-              :class="{ 'nge-template-selector__item--active': child.path === currentTemplate }"
-              @click="selectTemplate(child.path)"
-            >
-              {{ child.name }}
-            </div>
-          </div>
+            <path
+              d="M6 4L10 8L6 12"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          <span>{{ node.name }}</span>
         </div>
         <div
           v-else
           class="nge-template-selector__item"
           :class="{ 'nge-template-selector__item--active': node.path === currentTemplate }"
+          :style="{ paddingLeft: `${16 + node.depth * 16}px` }"
           @click="selectTemplate(node.path)"
         >
           {{ node.name }}

@@ -93,5 +93,13 @@ export default defineNuxtModule<ModuleOptions>({
 
     rollupConfig.plugins = [...plugins, vue()]
     nuxt.options.nitro = { ...nuxt.options.nitro, rollupConfig }
+
+    // In dev mode, watch the emails directory for added/removed .vue files.
+    // Nuxt's `watch` config triggers a full dev server restart on matching changes,
+    // which re-runs setup() → extendPages + addServerHandler + generateServerRoutes.
+    if (nuxt.options.dev) {
+      nuxt.options.watch = nuxt.options.watch || []
+      nuxt.options.watch.push(join(emailsDir, '**/*.vue'))
+    }
   },
 })

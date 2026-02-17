@@ -5,7 +5,7 @@ import { extractPropsFromSFC } from './extract-props'
 
 export interface ServerHandlerInfo {
   route: string
-  method: string
+  method: 'post' | 'get' | 'put' | 'delete' | 'patch'
   handlerPath: string
 }
 
