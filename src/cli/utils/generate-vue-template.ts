@@ -8,8 +8,8 @@ import { Body, Button, Font, Head, Hr, Html, Text, Tailwind } from '@vue-email/c
 defineOptions({ name: '${componentName}' })
 
 const props = withDefaults(defineProps<{
-  title: string
-  message: string
+  title?: string
+  message?: string
 }>(), {
   title: 'Welcome!',
   message: 'This is the ${emailName} email template.',
@@ -28,18 +28,6 @@ const props = withDefaults(defineProps<{
       <Body style="font-family: 'DM Sans', Arial, Helvetica, sans-serif;">
         <Text>{{ props.title }}</Text>
         <p>{{ props.message }}</p>
-        <Hr />
-        <Button href="https://example.com">
-          Click me
-        </Button>
-      </Body>
-    </Html>
-  </Tailwind>
-</template>
-`
-}
-        <Text>{{ ${emailName}Data.title }}</Text>
-        <p>{{ ${emailName}Data.message }}</p>
         <Hr />
         <Button href="https://example.com">
           Click me
