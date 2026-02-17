@@ -21,18 +21,18 @@ defineOptions({
 })
 
 const props = withDefaults(defineProps<{
-  previewText: string
-  customerFirstName: string
-  orderNumber: string
-  orderDate: string
-  deliveryEstimate: string
-  storeName: string
-  supportEmail: string
-  orderUrl: string
-  shippingMethod: string
-  paymentMethod: string
-  shippingCost: number
-  tax: number
+  previewText?: string
+  customerFirstName?: string
+  orderNumber?: string
+  orderDate?: string
+  deliveryEstimate?: string
+  storeName?: string
+  supportEmail?: string
+  orderUrl?: string
+  shippingMethod?: string
+  paymentMethod?: string
+  shippingCost?: number
+  tax?: number
 }>(), {
   previewText: 'Your order has been confirmed and is being prepared for shipment.',
   customerFirstName: 'Avery',

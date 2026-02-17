@@ -6,8 +6,8 @@ defineOptions({
 })
 
 const props = withDefaults(defineProps<{
-  title: string
-  message: string
+  title?: string
+  message?: string
 }>(), {
   title: 'Welcome!',
   message: 'This is the test2 email template.',
