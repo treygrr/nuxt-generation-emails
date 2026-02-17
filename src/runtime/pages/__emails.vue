@@ -67,9 +67,11 @@ function updateProp(key: string, value: string, type: PropDefinition['type']): v
 
   if (type === 'number') {
     const parsed = Number(value)
+    // eslint-disable-next-line vue/no-mutating-props
     props.emailProps[key] = Number.isNaN(parsed) ? 0 : parsed
   }
   else {
+    // eslint-disable-next-line vue/no-mutating-props
     props.emailProps[key] = value
   }
 }

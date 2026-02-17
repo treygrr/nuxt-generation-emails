@@ -28,7 +28,7 @@ import EmailComponent from '${emailComponentPath}'
 
 definePageMeta({ layout: false })
 ${hasProps
-? `
+  ? `
 const propDefaults = ${defaultsLiteral}
 const propDefinitions = ${propDefsLiteral}
 
@@ -56,7 +56,7 @@ onMounted(() => {
   }
 })
 `
-: ''}
+  : ''}
 ${scriptClose}
 
 ${templateOpen}
