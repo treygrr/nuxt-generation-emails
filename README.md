@@ -19,7 +19,13 @@ A Nuxt module for authoring, previewing, and sending transactional email templat
 
 ## 📦 1. Installation
 
-Install the module in your Nuxt 4+ project:
+Add the module to your Nuxt 4+ project with one command:
+
+```bash
+npx nuxt module add nuxt-generation-emails
+```
+
+Or install manually:
 
 ```bash
 npm install nuxt-generation-emails

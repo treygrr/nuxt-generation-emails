@@ -1,10 +1,28 @@
 {
   "name": "nuxt-generation-emails",
-  "version": "1.0.0",
-  "description": "My new Nuxt module",
-  "repository": "your-org/my-module",
+  "version": "0.1.0",
+  "description": "A Nuxt module for authoring, previewing, and sending transactional email templates with Vue Email.",
+  "author": "nullcarry@icloud.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/treygrr/nuxt-generation-emails.git"
+  },
+  "bugs": {
+    "url": "https://github.com/treygrr/nuxt-generation-emails/issues"
+  },
+  "homepage": "https://github.com/treygrr/nuxt-generation-emails#readme",
   "license": "MIT",
   "type": "module",
+  "keywords": [
+    "nuxt",
+    "nuxt-module",
+    "email",
+    "vue-email",
+    "transactional-email",
+    "email-templates",
+    "sendgrid",
+    "tailwind"
+  ],
   "exports": {
     ".": {
       "types": "./dist/types.d.mts",
@@ -15,6 +33,7 @@
     "nuxt-gen-emails": "./dist/cli/index.mjs"
   },
   "main": "./dist/module.mjs",
+  "types": "./dist/types.d.mts",
   "typesVersions": {
     "*": {
       ".": [
@@ -44,7 +63,14 @@
     "@nuxt/kit": "^4.3.1",
     "@vitejs/plugin-vue": "^6.0.4",
     "@vue-email/components": "^0.0.21",
-    "@vue-email/render": "^0.0.9"
+    "@vue-email/render": "^0.0.9",
+    "citty": "^0.1.6",
+    "consola": "^3.4.0",
+    "pathe": "^2.0.3"
+  },
+  "peerDependencies": {
+    "nuxt": ">=4.0.0",
+    "vue": "^3.5.0"
   },
   "devDependencies": {
     "@nuxt/devtools": "^3.1.1",

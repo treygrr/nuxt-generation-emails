@@ -6,7 +6,8 @@ export default defineBuildConfig({
     { input: './src/cli/index.ts', name: 'cli/index' },
   ],
   declaration: true,
-  externals: ['citty', 'consola', 'pathe'],
+  externals: ['citty', 'consola', 'pathe', 'vue/compiler-sfc'],
+  failOnWarn: false,
   rollup: {
     emitCJS: false,
   },
