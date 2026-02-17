@@ -1,6 +1,6 @@
 {
   "name": "nuxt-generation-emails",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A Nuxt module for authoring, previewing, and sending transactional email templates with Vue Email.",
   "author": "nullcarry@icloud.com",
   "repository": {
