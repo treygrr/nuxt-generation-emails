@@ -7,11 +7,21 @@ import { addEmailPages } from './module-utils/add-email-pages'
 import { generateServerRoutes } from './module-utils/generate-server-routes'
 
 /** Payload passed to the `nuxt-gen-emails:send` Nitro runtime hook. */
-export interface NuxtGenEmailsSendPayload {
+export type NuxtGenEmailsSendData<TAdditional extends Record<string, unknown> = Record<string, unknown>> = {
+  /** Recipient email address. */
+  to?: string
+  /** Sender email address. */
+  from?: string
+  /** Email subject line. */
+  subject?: string
+} & TAdditional
+
+/** Payload passed to the `nuxt-gen-emails:send` Nitro runtime hook. */
+export interface NuxtGenEmailsSendPayload<TSendData extends Record<string, unknown> = NuxtGenEmailsSendData> {
   /** The rendered HTML string of the email template. */
   html: string
-  /** Arbitrary data forwarded from the request body (e.g. `to`, `subject`). */
-  data: Record<string, unknown>
+  /** Send data forwarded from `sendData` in the request body (e.g. `to`, `subject`). */
+  data: TSendData
 }
 
 // Module options TypeScript interface definition
@@ -42,7 +52,21 @@ export default defineNuxtModule<ModuleOptions>({
       getContents: () => `
 export interface NuxtGenEmailsSendPayload {
   html: string
-  data: Record<string, unknown>
+  data: NuxtGenEmailsSendData
+}
+
+export type NuxtGenEmailsSendData<TAdditional extends Record<string, unknown> = Record<string, unknown>> = {
+  to?: string
+  from?: string
+  subject?: string
+} & TAdditional
+
+export interface NuxtGenEmailsApiBody<
+  TTemplateData extends Record<string, unknown> = Record<string, unknown>,
+  TSendData extends Record<string, unknown> = NuxtGenEmailsSendData,
+> {
+  templateData: TTemplateData
+  sendData: TSendData
 }
 
 declare module 'nitropack' {

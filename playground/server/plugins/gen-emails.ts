@@ -1,9 +1,20 @@
 import sgMail from '@sendgrid/mail'
 
+type SendData<TAdditional extends Record<string, unknown> = Record<string, unknown>> = {
+  to?: string
+  from?: string
+  subject?: string
+} & TAdditional
+
+interface NuxtGenEmailsSendPayload<TSendData extends Record<string, unknown> = SendData> {
+  html: string
+  data: TSendData
+}
+
 export default defineNitroPlugin((nitro) => {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY!)
 
-  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }: { html: string, data: Record<string, unknown> }) => {
+  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }: NuxtGenEmailsSendPayload) => {
     console.log('[gen-emails] Sending email to:', data.to)
     console.log('[gen-emails] Subject:', data.subject || 'No Subject')
     console.log('[gen-emails] HTML length:', html.length)

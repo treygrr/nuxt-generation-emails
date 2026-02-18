@@ -45,7 +45,10 @@ async function testApi() {
     // Pray to the HTTP gods that the network doesn't fail
     const result = await $fetch(apiEndpoint.value, {
       method: 'POST',
-      body: props.dataObject,
+      body: {
+        templateData: props.dataObject,
+        sendData: {},
+      },
     })
 
     // Pretty print the JSON because we're not animals
@@ -75,10 +78,12 @@ async function sendTestEmail() {
 
   lastUsedEmail.value = testEmailTo.value.trim()
 
-  const payload: Record<string, unknown> = {
-    ...props.dataObject,
-    to: lastUsedEmail.value,
-    subject: `Test email ${Date.now()}`,
+  const payload = {
+    templateData: props.dataObject,
+    sendData: {
+      to: lastUsedEmail.value,
+      subject: `Test email ${Date.now()}`,
+    },
   }
 
   isLoading.value = true

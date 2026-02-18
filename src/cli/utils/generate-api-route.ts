@@ -7,6 +7,20 @@ import { useNitroApp } from '#imports'
 import { render } from '@vue-email/render'
 import EmailTemplate from '~/emails/${emailPath}.vue'
 
+type SendData<TAdditional extends Record<string, unknown> = Record<string, unknown>> = {
+  to?: string
+  from?: string
+  subject?: string
+} & TAdditional
+
+type NuxtGenEmailsApiBody<
+  TTemplateData extends Record<string, unknown> = Record<string, unknown>,
+  TSendData extends Record<string, unknown> = SendData,
+> = {
+  templateData: TTemplateData
+  sendData: TSendData
+}
+
 defineRouteMeta({
   openAPI: {
     tags: ['nuxt-generation-emails'],
@@ -18,9 +32,26 @@ defineRouteMeta({
         'application/json': {
           schema: {
             type: 'object',
-            example: ${examplePayload},
-            additionalProperties: true,
-            description: '${emailName} props payload',
+            description: '${emailName} request payload',
+            properties: {
+              templateData: {
+                type: 'object',
+                description: '${emailName} props payload',
+                additionalProperties: true,
+                example: ${examplePayload},
+              },
+              sendData: {
+                type: 'object',
+                description: 'Send provider metadata (to/from/subject and any additional fields)',
+                additionalProperties: true,
+                properties: {
+                  to: { type: 'string', example: 'test@example.com' },
+                  from: { type: 'string', example: 'test@example.com' },
+                  subject: { type: 'string', example: 'Sending with Twilio SendGrid is Fun' },
+                },
+              },
+            },
+            required: ['templateData', 'sendData'],
           },
         },
       },
@@ -62,14 +93,17 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<Record<string, unknown>>(event)
+  const body = await readBody<NuxtGenEmailsApiBody>(event)
+
+  const templateData = body?.templateData ?? {}
+  const sendData = body?.sendData ?? {}
 
   try {
-    const html = await render(EmailTemplate, body, { pretty: true })
+    const html = await render(EmailTemplate, templateData, { pretty: true })
 
     const nitro = useNitroApp()
     // @ts-ignore - custom hook
-    await nitro.hooks.callHook('nuxt-gen-emails:send', { html, data: body })
+    await nitro.hooks.callHook('nuxt-gen-emails:send', { html, data: sendData })
 
     return { success: true, message: 'Email rendered successfully', html }
   }
