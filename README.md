@@ -87,7 +87,7 @@ The directory structure maps directly to routes:
 
 ### Example route detail
 
-![Detail view of a specific email API route](images/image.png)
+![Detail view of a specific email API route](images/api-post-example.png)
 
 ---
 
