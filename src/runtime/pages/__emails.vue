@@ -15,7 +15,7 @@ interface PropDefinition {
 const props = defineProps<{
   /** Reactive object containing current prop values (managed by the wrapper) */
   emailProps?: Record<string, unknown>
-  /** Flat list of prop definitions extracted from the SFC at build time */
+  /** Flat list of prop definitions derived from the component at runtime */
   propDefinitions?: PropDefinition[]
 }>()
 

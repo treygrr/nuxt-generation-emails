@@ -2,7 +2,6 @@ import { join } from 'pathe'
 import fs from 'node:fs'
 import type { NuxtPage } from '@nuxt/schema'
 import { generateWrapperComponent } from './generate-wrapper-component'
-import { extractPropsFromSFC } from './extract-props'
 
 export interface AddEmailPagesOptions {
   emailsDir: string
@@ -44,13 +43,9 @@ export function addEmailPages(
         fs.mkdirSync(wrapperDir, { recursive: true })
       }
 
-      // Extract prop definitions directly from the SFC — no .data.ts needed
-      const extractedProps = extractPropsFromSFC(fullPath)
-
       const wrapperContent = generateWrapperComponent(
         options.emailTemplateComponentPath,
         fullPath,
-        extractedProps,
       )
 
       fs.writeFileSync(wrapperPath, wrapperContent, 'utf-8')

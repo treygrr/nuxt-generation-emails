@@ -140,7 +140,9 @@ declare module 'nitropack/types' {
     const existingPlugins = rollupConfig.plugins ?? []
     const plugins = Array.isArray(existingPlugins) ? existingPlugins : [existingPlugins]
 
-    rollupConfig.plugins = [...plugins, vue()]
+    // Vue plugin MUST run first so <script setup> SFCs are compiled to a
+    // default export before other Rollup plugins try to resolve them.
+    rollupConfig.plugins = [vue(), ...plugins]
     nuxt.options.nitro = { ...nuxt.options.nitro, rollupConfig }
 
     // In dev mode, watch the emails directory for added/removed .vue files.

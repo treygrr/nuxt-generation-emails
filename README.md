@@ -56,42 +56,7 @@ export default defineNuxtConfig({
 
 ---
 
-## 📁 2. Folder Structure
-
-Templates live inside your app's source directory under the configured `emailDir` (default: `emails/`). You can nest them in subdirectories to organize by version, category, or however you like.
-
-```
-app/
-  emails/
-    v1/
-      order-confirmation.vue
-      welcome.vue
-    v2/
-      order-confirmation.vue
-    marketing/
-      promo.vue
-```
-
-The directory structure maps directly to routes:
-
-| Template file                          | Preview URL                               | API endpoint                             |
-|----------------------------------------|-------------------------------------------|------------------------------------------|
-| `emails/v1/order-confirmation.vue`     | `/__emails/v1/order-confirmation`         | `POST /api/emails/v1/order-confirmation` |
-| `emails/v1/welcome.vue`               | `/__emails/v1/welcome`                    | `POST /api/emails/v1/welcome`            |
-| `emails/v2/order-confirmation.vue`     | `/__emails/v2/order-confirmation`         | `POST /api/emails/v2/order-confirmation` |
-| `emails/marketing/promo.vue`          | `/__emails/marketing/promo`               | `POST /api/emails/marketing/promo`       |
-
-### Generated routes overview
-
-![Overview of all auto-generated API routes](images/example-overview.png)
-
-### Example route detail
-
-![Detail view of a specific email API route](images/api-post-example.png)
-
----
-
-## 🛠️ 3. Adding Templates with the CLI
+## �️ 2. Adding Templates with the CLI
 
 The fastest way to create a new email template:
 
@@ -169,6 +134,41 @@ const props = withDefaults(defineProps<{
 ```
 
 If the dev server is running, it will automatically detect the new file and restart to register the new routes — no manual restart needed.
+
+---
+
+## 📁 3. Folder Structure
+
+Templates live inside your app's source directory under the configured `emailDir` (default: `emails/`). You can nest them in subdirectories to organize by version, category, or however you like.
+
+```
+app/
+  emails/
+    v1/
+      order-confirmation.vue
+      welcome.vue
+    v2/
+      order-confirmation.vue
+    marketing/
+      promo.vue
+```
+
+The directory structure maps directly to routes:
+
+| Template file                          | Preview URL                               | API endpoint                             |
+|----------------------------------------|-------------------------------------------|------------------------------------------|
+| `emails/v1/order-confirmation.vue`     | `/__emails/v1/order-confirmation`         | `POST /api/emails/v1/order-confirmation` |
+| `emails/v1/welcome.vue`               | `/__emails/v1/welcome`                    | `POST /api/emails/v1/welcome`            |
+| `emails/v2/order-confirmation.vue`     | `/__emails/v2/order-confirmation`         | `POST /api/emails/v2/order-confirmation` |
+| `emails/marketing/promo.vue`          | `/__emails/marketing/promo`               | `POST /api/emails/marketing/promo`       |
+
+### Generated routes overview
+
+![Overview of all auto-generated API routes](images/example-overview.png)
+
+### Example route detail
+
+![Detail view of a specific email API route](images/api-post-example.png)
 
 ---
 
