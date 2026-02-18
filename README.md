@@ -56,7 +56,7 @@ export default defineNuxtConfig({
 
 ---
 
-## �️ 2. Adding Templates with the CLI
+## 🛠️ 2. Adding Templates with the CLI
 
 The fastest way to create a new email template:
 
