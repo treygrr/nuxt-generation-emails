@@ -174,7 +174,27 @@ The directory structure maps directly to routes:
 
 ## ✍️ 4. Writing Email Templates
 
-Templates are standard Vue SFCs using [`@vue-email/components`](https://vuemail.net/). Define your template's dynamic data using `defineProps` with `withDefaults`:
+Templates are standard Vue SFCs built with [`@vue-email/components`](https://vuemail.net/) — a set of unstyled, email-safe Vue components that produce clean, cross-client HTML. Instead of wrestling with `<table>` layouts and inline styles, you use components like `<Container>`, `<Section>`, `<Text>`, `<Button>`, and `<Heading>` that compile down to battle-tested email markup. The `<Tailwind>` wrapper lets you style with Tailwind CSS utility classes that get inlined automatically at render time.
+
+Key components from `@vue-email/components`:
+
+| Component      | Purpose                                                                 |
+|----------------|-------------------------------------------------------------------------|
+| `<Html>`       | Root email wrapper with `lang` attribute                                |
+| `<Head>`       | Email `<head>` — inject fonts, meta tags                                |
+| `<Body>`       | Email body element                                                      |
+| `<Container>`  | Centered, max-width content wrapper (replaces `<table>` centering hacks)|
+| `<Section>`    | Groups content into rows                                                |
+| `<Text>`       | Paragraph text with sensible email defaults                             |
+| `<Heading>`    | `<h1>`–`<h6>` headings                                                  |
+| `<Button>`     | Call-to-action link styled as a button                                  |
+| `<Hr>`         | Horizontal rule                                                         |
+| `<Link>`       | Anchor tag                                                              |
+| `<Preview>`    | Invisible preheader text shown in inbox previews                        |
+| `<Font>`       | Web font loading via `@font-face`                                       |
+| `<Tailwind>`   | Wraps the template to enable Tailwind CSS utility classes               |
+
+Define your template's dynamic data using `defineProps` with `withDefaults`:
 
 ```vue
 <script setup lang="ts">
@@ -359,11 +379,21 @@ curl -X POST http://localhost:3000/api/emails/v1/order-confirmation \
 
 ## 🔧 7. Module Options
 
-| Option           | Type       | Default    | Description                                                        |
-|------------------|------------|------------|--------------------------------------------------------------------|
-| `emailDir`       | `string`   | `'emails'` | Directory containing email templates (relative to `srcDir`)        |
+| Option                | Type       | Default    | Description                                                        |
+|-----------------------|------------|------------|--------------------------------------------------------------------|
+| `emailDir`            | `string`   | `'emails'` | Directory containing email templates (relative to `srcDir`)        |
+| `disablePreviewInProd` | `boolean`  | `true`     | When `true`, the `/__emails/` preview UI is not registered in production builds. API routes are unaffected. |
 
 Full config key: `nuxtGenerationEmails`
+
+```ts
+export default defineNuxtConfig({
+  nuxtGenerationEmails: {
+    emailDir: 'emails',
+    disablePreviewInProd: true, // default — preview pages are dev-only
+  },
+})
+```
 
 ### Nitro hook
 
@@ -373,7 +403,44 @@ Full config key: `nuxtGenerationEmails`
 
 ---
 
-## 🧩 Auto-Imports
+## 🔒 8. Securing API Endpoints
+
+The generated `POST /api/emails/...` endpoints are registered in all environments (dev and production). In production, you should protect them with server middleware to prevent unauthorized access.
+
+### Using Nuxt server middleware
+
+Create a server middleware file that gates access to the email API routes:
+
+```ts
+// server/middleware/protect-emails.ts
+import { defineEventHandler, createError, getHeader } from 'h3'
+
+export default defineEventHandler((event) => {
+  // Only apply to email API routes
+  if (!event.path?.startsWith('/api/emails/')) return
+
+  const apiKey = getHeader(event, 'x-api-key')
+
+  if (apiKey !== process.env.EMAIL_API_KEY) {
+    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+  }
+})
+```
+
+Then set `EMAIL_API_KEY` in your environment and include the header in requests:
+
+```bash
+curl -X POST http://localhost:3000/api/emails/v1/order-confirmation \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: your-secret-key" \
+  -d '{ "templateData": {}, "sendData": {} }'
+```
+
+You can also use session-based auth, JWT validation, or any other pattern — the middleware runs before the generated route handler so you have full control.
+
+---
+
+## 🧩 9. Auto-Imports
 
 The module auto-imports these utilities for convenience:
 

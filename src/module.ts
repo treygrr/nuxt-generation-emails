@@ -28,6 +28,8 @@ export interface NuxtGenEmailsSendPayload<TSendData extends Record<string, unkno
 export interface ModuleOptions {
   /** Directory containing email templates; resolved from srcDir when relative. */
   emailDir?: string
+  /** When true, the `/__emails/` preview UI pages are not registered in production builds. API routes are unaffected. Defaults to `true`. */
+  disablePreviewInProd?: boolean
 }
 
 export default defineNuxtModule<ModuleOptions>({
@@ -41,6 +43,7 @@ export default defineNuxtModule<ModuleOptions>({
   },
   defaults: {
     emailDir: 'emails',
+    disablePreviewInProd: true,
   },
   async setup(options, nuxt) {
     const resolver = createResolver(import.meta.url)
@@ -112,17 +115,23 @@ declare module 'nitropack/types' {
     ])
 
     // Register email preview pages under /__emails/
-    extendPages((pages) => {
-      if (!fs.existsSync(emailsDir)) {
-        return
-      }
+    // When disablePreviewInProd is true (default), preview pages are only
+    // registered during development. API routes are always registered.
+    const shouldRegisterPreview = nuxt.options.dev || !options.disablePreviewInProd
 
-      addEmailPages(emailsDir, pages, {
-        emailsDir,
-        buildDir: nuxt.options.buildDir,
-        emailTemplateComponentPath: resolver.resolve('./runtime/pages/__emails.vue'),
+    if (shouldRegisterPreview) {
+      extendPages((pages) => {
+        if (!fs.existsSync(emailsDir)) {
+          return
+        }
+
+        addEmailPages(emailsDir, pages, {
+          emailsDir,
+          buildDir: nuxt.options.buildDir,
+          emailTemplateComponentPath: resolver.resolve('./runtime/pages/__emails.vue'),
+        })
       })
-    })
+    }
 
     // Generate server route handlers into the build directory and register them programmatically.
     // Props and defaults are extracted from each SFC's defineProps + withDefaults.
