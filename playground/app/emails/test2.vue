@@ -1,28 +1,10 @@
-export function generateVueTemplate(emailName: string): string {
-  const capitalizedEmailName = emailName.charAt(0).toUpperCase() + emailName.slice(1)
-  const componentName = `${capitalizedEmailName}Nge`
-
-  const scriptClose = '<' + '/script>'
-  const templateOpen = '<' + 'template>'
-  const templateClose = '<' + '/template>'
-
-  return `<script setup lang="ts">
+<script setup lang="ts">
 import { computed } from 'vue'
 import mjml2html from 'mjml-browser'
 import Handlebars from 'handlebars'
-import mjmlSource from './${emailName}.mjml?raw'
+import mjmlSource from './test2.mjml?raw'
 
-defineOptions({ name: '${componentName}' })
-
-/**
- * MJML Components (reusable MJML snippets)
- * Place .mjml files in emails/components/ and they are auto-registered
- * as Handlebars partials on the server side.
- *
- * For client-side preview, uncomment the line below to register them here too.
- * Then use {{> componentName}} in your .mjml template.
- */
-// registerMjmlComponents()
+defineOptions({ name: 'Test2Nge' })
 
 /**
  * Define interfaces for complex prop types here.
@@ -43,9 +25,9 @@ const props = withDefaults(defineProps<{
   showFooter?: boolean
   sections?: ContentSection[]
 }>(), {
-  previewText: 'You have a new message from ${capitalizedEmailName}.',
+  previewText: 'You have a new message from Test2.',
   heading: 'Welcome!',
-  message: 'This is the ${emailName} email template. Edit the .vue props and .mjml template to build your email.',
+  message: 'This is the test2 email template. Edit the .vue props and .mjml template to build your email.',
   ctaLabel: 'Get Started',
   ctaUrl: 'https://example.com',
   showFooter: true,
@@ -64,18 +46,16 @@ const renderedHtml = computed(() => {
     return result.html
   }
   catch (e: unknown) {
-    console.error('[${emailName}.vue] Error rendering MJML:', e)
-    return \`<pre style="color:red;">\${
+    console.error('[test2.vue] Error rendering MJML:', e)
+    return `<pre style="color:red;">${
       e instanceof Error ? e.message : String(e)
-    }\\n\${
+    }\n${
       e instanceof Error ? e.stack : ''
-    }</pre>\`
+    }</pre>`
   }
 })
-${scriptClose}
+</script>
 
-${templateOpen}
+<template>
   <div v-html="renderedHtml" />
-${templateClose}
-`
-}
+</template>

@@ -1,7 +1,7 @@
 {
   "name": "nuxt-generation-emails",
   "version": "0.2.6",
-  "description": "A Nuxt module for authoring, previewing, and sending transactional email templates with Vue Email.",
+  "description": "A Nuxt module for authoring, previewing, and sending transactional email templates with MJML and Handlebars.",
   "author": "nullcarry@icloud.com",
   "repository": {
     "type": "git",
@@ -17,11 +17,11 @@
     "nuxt",
     "nuxt-module",
     "email",
-    "vue-email",
+    "mjml",
+    "handlebars",
     "transactional-email",
     "email-templates",
-    "sendgrid",
-    "tailwind"
+    "sendgrid"
   ],
   "exports": {
     ".": {
@@ -58,15 +58,16 @@
     "test": "vitest run",
     "test:watch": "vitest watch",
     "test:types": "vue-tsc --noEmit && cd playground && vue-tsc --noEmit",
-    "cli:add": "cd playground && node ../dist/cli/index.mjs add"
+    "cli:add": "cd playground && node ../dist/cli/index.mjs add",
+    "cli:setup": "cd playground && node ../dist/cli/index.mjs setup"
   },
   "dependencies": {
     "@nuxt/kit": "^4.3.1",
-    "@vitejs/plugin-vue": "^6.0.4",
-    "@vue-email/components": "^0.0.21",
-    "@vue-email/render": "^0.0.9",
     "citty": "^0.1.6",
     "consola": "^3.4.0",
+    "handlebars": "^4.7.8",
+    "mjml": "^4.18.0",
+    "mjml-browser": "^4.18.0",
     "pathe": "^2.0.3"
   },
   "peerDependencies": {
@@ -79,6 +80,8 @@
     "@nuxt/module-builder": "^1.0.2",
     "@nuxt/schema": "^4.3.1",
     "@nuxt/test-utils": "^4.0.0",
+    "@types/mjml": "^4.7.4",
+    "@types/mjml-browser": "^4.15.0",
     "@types/node": "latest",
     "changelogen": "^0.6.2",
     "eslint": "^10.0.0",

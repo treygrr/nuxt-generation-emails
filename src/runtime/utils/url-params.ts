@@ -1,24 +1,22 @@
 /**
- * Encode a data store object into URL search parameters
+ * Encode a data store object into URL search parameters.
+ * Primitive values are stored as-is. Objects and arrays are JSON-stringified.
  */
 export function encodeStoreToUrlParams(store: Record<string, unknown>): string {
-  // URLSearchParams: the API that makes me question my life choices
   const params = new URLSearchParams()
 
-  // Loop through every single key-value pair. Every. Single. One.
   Object.entries(store).forEach(([key, value]) => {
-    // First check: is it null or undefined? Cool, skip it. We don't serialize the void.
-    if (value !== null && value !== undefined) {
-      // Only include primitive types (string, number, boolean)
-      // Because objects in URLs? That's a ticket to debugging hell I'm not willing to buy
-      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-        params.set(key, String(value))
-      }
+    if (value === null || value === undefined) return
+
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      params.set(key, String(value))
+    }
+    else if (typeof value === 'object') {
+      params.set(key, JSON.stringify(value))
     }
   })
 
   const paramsString = params.toString()
-  // If we have params, prefix with '?'. If not, return empty. Simple? NEVER.
   return paramsString ? `?${paramsString}` : ''
 }
 

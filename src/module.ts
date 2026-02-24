@@ -1,6 +1,5 @@
-import { defineNuxtModule, createResolver, addServerImports, addServerHandler, addImports, addTypeTemplate, extendPages } from '@nuxt/kit'
+import { defineNuxtModule, createResolver, addServerImports, addServerHandler, addImports, addTypeTemplate, addTemplate, extendPages } from '@nuxt/kit'
 import fs from 'node:fs'
-import vue from '@vitejs/plugin-vue'
 import { join, relative } from 'pathe'
 import { consola } from 'consola'
 import { addEmailPages } from './module-utils/add-email-pages'
@@ -89,6 +88,29 @@ declare module 'nitropack/types' {
     const configuredEmailDir = options.emailDir ?? 'emails'
 
     const emailsDir = join(nuxt.options.srcDir, configuredEmailDir)
+
+    // Generate a virtual module that registers all .mjml files from components/
+    // as Handlebars partials. This lets email templates call registerMjmlComponents()
+    // with no arguments — the glob path is baked in at build time.
+    // Uses the ~ alias (resolves to srcDir) so Vite can resolve it from .nuxt/
+    const globPath = `~/${configuredEmailDir}/components/*.mjml`
+
+    addTemplate({
+      filename: 'nge/register-components.ts',
+      write: true,
+      getContents: () => `import Handlebars from 'handlebars'
+
+const componentFiles: Record<string, unknown> = import.meta.glob('${globPath}', { query: '?raw', import: 'default', eager: true })
+
+export function registerMjmlComponents(): void {
+  for (const [path, source] of Object.entries(componentFiles)) {
+    const name = path.split('/').pop()!.replace('.mjml', '')
+    Handlebars.registerPartial(name, source as string)
+  }
+}
+`,
+    })
+
     // Expose emails directory via runtime config (functions cannot be serialized)
     nuxt.options.runtimeConfig.nuxtGenEmails = {
       emailsDir,
@@ -103,6 +125,10 @@ declare module 'nitropack/types' {
       {
         name: 'generateShareableUrl',
         from: resolver.resolve('./runtime/utils/url-params'),
+      },
+      {
+        name: 'registerMjmlComponents',
+        from: join(nuxt.options.buildDir, 'nge/register-components'),
       },
     ])
 
@@ -145,15 +171,6 @@ declare module 'nitropack/types' {
       })
     }
 
-    const rollupConfig = nuxt.options.nitro?.rollupConfig ?? {}
-    const existingPlugins = rollupConfig.plugins ?? []
-    const plugins = Array.isArray(existingPlugins) ? existingPlugins : [existingPlugins]
-
-    // Vue plugin MUST run first so <script setup> SFCs are compiled to a
-    // default export before other Rollup plugins try to resolve them.
-    rollupConfig.plugins = [vue(), ...plugins]
-    nuxt.options.nitro = { ...nuxt.options.nitro, rollupConfig }
-
     // In dev mode, watch the emails directory for added/removed .vue files.
     if (nuxt.options.dev && fs.existsSync(emailsDir)) {
       const relDir = relative(nuxt.options.rootDir, emailsDir)
@@ -161,17 +178,18 @@ declare module 'nitropack/types' {
 
       // Add emails directory to Nuxt's native watch list
       nuxt.options.watch.push(emailsDir + '/**/*.vue')
+      nuxt.options.watch.push(emailsDir + '/**/*.mjml')
 
       nuxt.hook('builder:watch', (event, relativePath) => {
         const absolutePath = join(nuxt.options.rootDir, relativePath)
         const rel = relative(emailsDir, absolutePath)
 
-        if (event === 'add') {
+        if (event === 'add' && (relativePath.endsWith('.vue') || relativePath.endsWith('.mjml'))) {
           consola.success(`[nuxt-gen-emails] New template detected: ${rel}`)
           consola.info('[nuxt-gen-emails] Restarting to register new routes...')
           nuxt.callHook('restart')
         }
-        else if (event === 'unlink') {
+        else if (event === 'unlink' && (relativePath.endsWith('.vue') || relativePath.endsWith('.mjml'))) {
           consola.warn(`[nuxt-gen-emails] Template removed: ${rel}`)
           consola.info('[nuxt-gen-emails] Restarting to update routes...')
           nuxt.callHook('restart')

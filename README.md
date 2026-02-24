@@ -3,314 +3,332 @@
 [![License][license-src]][license-href]
 [![Nuxt][nuxt-src]][nuxt-href]
 
-A production-ready Nuxt module that turns your app into a complete email workflow: build Vue-powered templates, preview them live, auto-generate typed API endpoints, and optionally deliver through providers like SendGrid via a Nitro hook. From local development to real sends, everything stays in one place.
+A Nuxt module for authoring, previewing, and sending transactional email templates using **MJML** and **Handlebars**. Write your layouts in MJML, use Handlebars for dynamic content, preview everything live with a rich props editor, and send through any provider via a Nitro hook.
 
-## ✨ Features
+## Features
 
-- 📧 **Vue-powered email templates** — Build emails with `@vue-email/components` and Tailwind CSS
-- 🔌 **Auto-generated API routes** — Every template gets a `POST /api/emails/...` endpoint automatically
-- 🖥️ **Live preview UI** — Browse and tweak templates at `/__emails/` with a built-in props editor
-- 🛠️ **CLI scaffolding** — `nuxt-gen-emails add` creates templates with the right structure instantly
-- 🔄 **Hot reload** — New templates are detected automatically during dev (server restarts to register routes)
-- 📋 **OpenAPI docs** — Generated routes include full OpenAPI metadata out of the box
-- 🔗 **Shareable URLs** — Share template previews with pre-filled prop values via URL params
+- **MJML + Handlebars templates** — Write email layouts in MJML with Handlebars expressions for variables, loops, and conditionals
+- **Reusable MJML components** — Place `.mjml` snippets in `components/` and include them with `{{> name}}`
+- **Auto-generated API routes** — Every template gets a typed `POST /api/emails/...` endpoint
+- **Live preview with props editor** — Edit strings, numbers, objects, and arrays in a sidebar; see changes instantly
+- **Complex prop support** — Nested objects and arrays render as collapsible editors; API routes pass all data straight through
+- **CLI scaffolding** — `setup` for first-time project structure, `add` for new templates
+- **Hot reload** — New templates and components are detected automatically during dev
+- **OpenAPI docs** — Generated routes include full OpenAPI metadata
+- **Shareable URLs** — Share template previews with pre-filled prop values via URL params
 
 ---
 
-## 📦 1. Installation
+## Quick Start
 
-Add the module to your Nuxt 4+ project with one command:
+### 1. Install
 
 ```bash
 npx nuxt module add nuxt-generation-emails
 ```
 
-Or install manually:
+Or manually:
 
 ```bash
 npm install nuxt-generation-emails
 ```
 
-Then add it to your `nuxt.config.ts`:
+Add to `nuxt.config.ts`:
 
 ```ts
 export default defineNuxtConfig({
   modules: ['nuxt-generation-emails'],
-
-  nuxtGenerationEmails: {
-    // Directory for email templates (relative to your app's srcDir)
-    emailDir: 'emails', // default
-  },
 })
 ```
 
-> **Tip:** Enable Nitro's OpenAPI support to get auto-generated API docs for every email endpoint:
->
-> ```ts
-> nitro: {
->   experimental: {
->     openAPI: true,
->   },
-> },
-> ```
+### 2. Run Setup (Recommended)
 
----
-
-## 🛠️ 2. Adding Templates with the CLI
-
-The fastest way to create a new email template:
+Scaffold the emails directory with example templates and reusable components:
 
 ```bash
-npx nuxt-gen-emails add <name>
+npx nuxt-gen-emails setup
 ```
 
-### Basic usage
-
-```bash
-# Creates emails/welcome.vue
-npx nuxt-gen-emails add welcome
-
-# Creates emails/v1/order-confirmation.vue (creates v1/ if it doesn't exist)
-npx nuxt-gen-emails add v1/order-confirmation
-
-# Creates emails/marketing/campaigns/summer-sale.vue (deeply nested)
-npx nuxt-gen-emails add marketing/campaigns/summer-sale
-```
-
-### Interactive directory selection
-
-If you run the command without a path prefix, and directories already exist, the CLI will ask if you want to place the template in an existing directory:
-
-```bash
-npx nuxt-gen-emails add reset-password
-
-# ? Would you like to select an existing directory? (y/N)
-# ? Select a directory:
-#   > emails/ (root)
-#     emails/v1/
-#     emails/v2/
-#     emails/marketing/
-```
-
-### What gets generated
-
-Every `add` command creates a single `.vue` file with a ready-to-customize starter template:
-
-```vue
-<script setup lang="ts">
-import { Body, Button, Font, Head, Hr, Html, Text, Tailwind } from '@vue-email/components'
-
-defineOptions({ name: 'WelcomeNge' })
-
-const props = withDefaults(defineProps<{
-  title?: string
-  message?: string
-}>(), {
-  title: 'Welcome!',
-  message: 'This is the welcome email template.',
-})
-</script>
-
-<template>
-  <Tailwind>
-    <Html lang="en">
-      <Head />
-      <Font
-        font-family="DM Sans"
-        :fallback-font-family="['Arial', 'Helvetica', 'sans-serif']"
-        :web-font="{ url: 'https://fonts.gstatic.com/s/dmsans/v15/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2', format: 'woff2' }"
-      />
-      <Body style="font-family: 'DM Sans', Arial, Helvetica, sans-serif;">
-        <Text>{{ props.title }}</Text>
-        <p>{{ props.message }}</p>
-        <Hr />
-        <Button href="https://example.com">
-          Click me
-        </Button>
-      </Body>
-    </Html>
-  </Tailwind>
-</template>
-```
-
-If the dev server is running, it will automatically detect the new file and restart to register the new routes — no manual restart needed.
-
----
-
-## 📁 3. Folder Structure
-
-Templates live inside your app's source directory under the configured `emailDir` (default: `emails/`). You can nest them in subdirectories to organize by version, category, or however you like.
+This creates:
 
 ```
 app/
   emails/
-    v1/
-      order-confirmation.vue
-      welcome.vue
-    v2/
-      order-confirmation.vue
-    marketing/
-      promo.vue
+    components/
+      header.mjml      # Branded header component
+      divider.mjml      # Horizontal divider component
+      footer.mjml       # Unsubscribe footer component
+    example.mjml        # MJML template using all three components
+    example.vue         # Vue SFC that compiles and renders the template
 ```
 
-The directory structure maps directly to routes:
+Start the dev server and visit `/__emails/example` to see it in action.
 
-| Template file                          | Preview URL                               | API endpoint                             |
-|----------------------------------------|-------------------------------------------|------------------------------------------|
-| `emails/v1/order-confirmation.vue`     | `/__emails/v1/order-confirmation`         | `POST /api/emails/v1/order-confirmation` |
-| `emails/v1/welcome.vue`               | `/__emails/v1/welcome`                    | `POST /api/emails/v1/welcome`            |
-| `emails/v2/order-confirmation.vue`     | `/__emails/v2/order-confirmation`         | `POST /api/emails/v2/order-confirmation` |
-| `emails/marketing/promo.vue`          | `/__emails/marketing/promo`               | `POST /api/emails/marketing/promo`       |
+### Editor Setup
 
-### Generated routes overview
+For the best experience editing `.mjml` files with Handlebars syntax, install these VS Code extensions:
 
-![Overview of all auto-generated API routes](images/example-overview.png)
+- [MJML](https://marketplace.visualstudio.com/items?itemName=mjmlio.vscode-mjml) — MJML tag previews and validation
+- [Handlebars](https://marketplace.visualstudio.com/items?itemName=andrejunges.handlebars) — Syntax highlighting for `{{}}` expressions
 
-### Example route detail
+Then add this to your `.vscode/settings.json` so `.mjml` files get Handlebars highlighting (which also covers HTML/XML tags like `<mj-section>`):
 
-![Detail view of a specific email API route](images/api-post-example.png)
+```json
+{
+  "files.associations": { "*.mjml": "handlebars" }
+}
+```
+
+### 3. Add More Templates
+
+```bash
+npx nuxt-gen-emails add welcome
+npx nuxt-gen-emails add v1/order-confirmation
+npx nuxt-gen-emails add marketing/campaigns/summer-sale
+```
+
+Each command creates a `.vue` + `.mjml` pair with a ready-to-customize starter template.
 
 ---
 
-## ✍️ 4. Writing Email Templates
+## How Templates Work
 
-Templates are standard Vue SFCs built with [`@vue-email/components`](https://vuemail.net/) — a set of unstyled, email-safe Vue components that produce clean, cross-client HTML. Instead of wrestling with `<table>` layouts and inline styles, you use components like `<Container>`, `<Section>`, `<Text>`, `<Button>`, and `<Heading>` that compile down to battle-tested email markup. The `<Tailwind>` wrapper lets you style with Tailwind CSS utility classes that get inlined automatically at render time.
+Every email is a pair of files:
 
-Key components from `@vue-email/components`:
+- **`.mjml`** — The email layout using MJML tags and Handlebars expressions
+- **`.vue`** — A Vue SFC that compiles the MJML template and defines the props
 
-| Component      | Purpose                                                                 |
-|----------------|-------------------------------------------------------------------------|
-| `<Html>`       | Root email wrapper with `lang` attribute                                |
-| `<Head>`       | Email `<head>` — inject fonts, meta tags                                |
-| `<Body>`       | Email body element                                                      |
-| `<Container>`  | Centered, max-width content wrapper (replaces `<table>` centering hacks)|
-| `<Section>`    | Groups content into rows                                                |
-| `<Text>`       | Paragraph text with sensible email defaults                             |
-| `<Heading>`    | `<h1>`–`<h6>` headings                                                  |
-| `<Button>`     | Call-to-action link styled as a button                                  |
-| `<Hr>`         | Horizontal rule                                                         |
-| `<Link>`       | Anchor tag                                                              |
-| `<Preview>`    | Invisible preheader text shown in inbox previews                        |
-| `<Font>`       | Web font loading via `@font-face`                                       |
-| `<Tailwind>`   | Wraps the template to enable Tailwind CSS utility classes               |
+### MJML Template (`example.mjml`)
 
-Define your template's dynamic data using `defineProps` with `withDefaults`:
+```handlebars
+<mjml>
+  <mj-head>
+    <mj-preview>{{previewText}}</mj-preview>
+  </mj-head>
+  <mj-body>
+    {{> header}}
+
+    <mj-section>
+      <mj-column>
+        <mj-text>{{heading}}</mj-text>
+        <mj-text>{{message}}</mj-text>
+      </mj-column>
+    </mj-section>
+
+    {{#each sections}}
+    <mj-section>
+      <mj-column>
+        <mj-text>{{this.heading}}</mj-text>
+        <mj-text>{{this.body}}</mj-text>
+      </mj-column>
+    </mj-section>
+    {{/each}}
+
+    {{> footer}}
+  </mj-body>
+</mjml>
+```
+
+### Vue Component (`example.vue`)
 
 ```vue
 <script setup lang="ts">
-import { Body, Button, Container, Head, Heading, Html, Text, Tailwind } from '@vue-email/components'
+import { computed } from 'vue'
+import mjml2html from 'mjml-browser'
+import Handlebars from 'handlebars'
+import mjmlSource from './example.mjml?raw'
 
-defineOptions({ name: 'OrderConfirmationNge' })
+defineOptions({ name: 'ExampleNge' })
+
+// Auto-imported: registers all .mjml files from components/ as Handlebars partials
+registerMjmlComponents()
+
+interface ContentSection {
+  heading: string
+  body: string
+}
 
 const props = withDefaults(defineProps<{
-  customerName?: string
-  orderNumber?: string
-  orderDate?: string
-  totalAmount?: number
+  previewText?: string
+  heading?: string
+  message?: string
+  sections?: ContentSection[]
 }>(), {
-  customerName: 'Customer',
-  orderNumber: 'ORD-000000',
-  orderDate: 'January 1, 2026',
-  totalAmount: 0,
+  previewText: 'You have a new message.',
+  heading: 'Welcome!',
+  message: 'Hello from your email template.',
+  sections: () => [
+    { heading: 'Section 1', body: 'First section content.' },
+    { heading: 'Section 2', body: 'Second section content.' },
+  ],
+})
+
+const compiledTemplate = Handlebars.compile(mjmlSource)
+
+const renderedHtml = computed(() => {
+  try {
+    const mjmlString = compiledTemplate({ ...props })
+    return mjml2html(mjmlString).html
+  }
+  catch (e: unknown) {
+    return `<pre style="color:red;">${e instanceof Error ? e.message : String(e)}</pre>`
+  }
 })
 </script>
 
 <template>
-  <Tailwind>
-    <Html lang="en">
-      <Head />
-      <Body>
-        <Container>
-          <Heading as="h1">Order Confirmed!</Heading>
-          <Text>Hi {{ props.customerName }},</Text>
-          <Text>Your order #{{ props.orderNumber }} placed on {{ props.orderDate }} is confirmed.</Text>
-          <Text>Total: ${{ props.totalAmount?.toFixed(2) }}</Text>
-          <Button href="https://example.com/orders">View Order</Button>
-        </Container>
-      </Body>
-    </Html>
-  </Tailwind>
+  <div v-html="renderedHtml" />
 </template>
 ```
 
-### Key rules
+### Key architecture rules
 
-1. **Use `withDefaults(defineProps<{...}>())`** — Props are extracted at build time to populate the preview UI and API example payloads
-2. **Make all props optional** (`?:`) — The defaults provide sensible preview values
-3. **Supported prop types** — `string`, `number`, `boolean` appear as editable fields in the preview UI. Complex types (objects, arrays) work fine but are only editable via the JSON editor
+1. **Every Handlebars variable must be a direct prop** — No computed values or transformations. The server-side API route calls `compiledTemplate({ ...templateData })` with the raw POST body, so if a variable isn't a prop, it won't render when sending.
+2. **Use `withDefaults(defineProps<{...}>())`** — Props and defaults are extracted at build time for the preview UI, API docs, and OpenAPI metadata.
+3. **Make all props optional** (`?:`) — Defaults provide sensible preview values.
 
----
+### Common MJML components
 
-## 🖥️ 5. Using the Preview UI
+Templates use [MJML](https://documentation.mjml.io/) for email-safe layouts. Here are the most commonly used tags:
 
-Navigate to `/__emails/` in your browser during development to access the preview interface.
+| Tag | Purpose |
+|-----|---------|
+| `<mjml>` | Root element wrapping the entire email |
+| `<mj-head>` | Contains styles, fonts, attributes, and preview text |
+| `<mj-body>` | Email body — all visible content goes here |
+| `<mj-section>` | Full-width row container (like a `<tr>`) |
+| `<mj-column>` | Column within a section (auto-stacks on mobile) |
+| `<mj-text>` | Text block with inline styles |
+| `<mj-button>` | Call-to-action link styled as a button |
+| `<mj-image>` | Responsive image with `src`, `alt`, `width` |
+| `<mj-divider>` | Horizontal rule / separator |
+| `<mj-spacer>` | Vertical spacing |
+| `<mj-social>` | Social media icon row |
+| `<mj-preview>` | Invisible preheader text shown in inbox previews |
+| `<mj-font>` | Web font loading via `@font-face` |
+| `<mj-attributes>` | Set default styles for all tags of a type |
 
-![Preview UI rendering an email template with props editor](images/component-editor-preview.png)
-
-### What you'll see
-
-- **Template selector** — A dropdown at the top of the page lists all templates, organized by directory. Click a folder to expand/collapse it, click a template name to load it.
-- **Props sidebar** — String and number props appear as editable input fields on the left. Changes update the preview in real time.
-- **Live preview** — The rendered email is displayed on the right, exactly as it will look when sent.
-- **Share URL button** — Copies a URL with the current prop values encoded as query parameters, useful for sharing specific test states with teammates.
-- **API tester** — At the bottom of the sidebar, a built-in API tester lets you fire a real `POST` request to the template's endpoint. It shows the full JSON request body (editable) and the response including the rendered HTML.
-
-### Navigation
-
-Every template is accessible at a direct URL matching its file path:
-
-```
-http://localhost:3000/__emails/v1/order-confirmation
-http://localhost:3000/__emails/v2/welcome
-```
+See the full [MJML documentation](https://documentation.mjml.io/) for all available tags and attributes.
 
 ---
 
-## 📨 6. Wiring Up Email Sending
+## Reusable MJML Components
 
-The module generates `POST` endpoints for every template that render the email HTML. To actually **send** emails, register a Nitro server plugin that listens for the `nuxt-gen-emails:send` hook.
+Place `.mjml` files in `emails/components/` to create reusable snippets. Each file is registered as a Handlebars partial and can be included in any template with `{{> fileName}}`.
 
-### Create a server plugin
+```
+emails/
+  components/
+    header.mjml       →  {{> header}}
+    footer.mjml       →  {{> footer}}
+    divider.mjml      →  {{> divider}}
+    cta-button.mjml   →  {{> cta-button}}
+```
 
-Create a file at `server/plugins/gen-emails.ts` in your project:
+### Example component (`components/header.mjml`)
 
-`data` in the hook payload uses this shape:
+```handlebars
+<mj-section background-color="#4f46e5" padding="20px 32px">
+  <mj-column>
+    <mj-text color="#ffffff" font-size="18px" font-weight="700">
+      {{brandName}}
+    </mj-text>
+  </mj-column>
+</mj-section>
+```
+
+Components have access to all the props passed to the parent template — Handlebars partials inherit the parent context.
+
+### Client-side registration
+
+Call `registerMjmlComponents()` in your Vue SFC to register components for the preview UI. This is auto-imported by the module — no import needed:
 
 ```ts
-type NuxtGenEmailsSendData<TAdditional extends Record<string, unknown> = Record<string, unknown>> = {
-  to?: string
-  from?: string
-  subject?: string
-} & TAdditional
+registerMjmlComponents()
 ```
+
+### Server-side registration
+
+On the server, the generated API route handlers automatically scan `emails/components/` and register all `.mjml` files as Handlebars partials before compiling templates. No setup needed.
+
+### Adding new components
+
+Drop a new `.mjml` file in `components/` and the dev server will automatically restart to pick it up.
+
+---
+
+## Props and the Preview UI
+
+### Primitive props (string, number, boolean)
+
+Appear as editable input fields in the sidebar. Changes update the preview in real time.
+
+### Complex props (objects, arrays)
+
+Render as **collapsible tree editors** in the sidebar:
+
+- **Objects** — Each field is editable inline. Fields cannot be added or removed (the shape is defined by your TypeScript interface).
+- **Arrays** — Items can be added or removed. New items are created by cloning the shape of existing items. Each item expands into its own editable section.
+
+This means templates with props like `sections: ContentSection[]` or `shippingAddress: { street: string, city: string }` are fully editable from the preview UI — no JSON editing required.
+
+### How defaults work
+
+Defaults are extracted from your `withDefaults()` call at build time, including:
+- Simple values: `title: 'Welcome!'`
+- Factory functions: `sections: () => [{ heading: 'Intro', body: 'Hello' }]`
+- Nested objects: `address: () => ({ street: '123 Main St', city: 'Springfield' })`
+
+The extraction handles arrow functions, nested braces, and complex data structures automatically.
+
+---
+
+## Folder Structure
+
+```
+app/
+  emails/
+    components/         # Reusable MJML snippets (auto-registered as Handlebars partials)
+      header.mjml
+      footer.mjml
+    welcome.vue         # Email template
+    welcome.mjml        # MJML layout
+    v1/
+      order.vue
+      order.mjml
+```
+
+The `components/` directory is reserved — it is skipped during route generation. Everything else maps to routes:
+
+| Template file              | Preview URL                   | API endpoint                  |
+|----------------------------|-------------------------------|-------------------------------|
+| `emails/welcome.vue`      | `/__emails/welcome`           | `POST /api/emails/welcome`    |
+| `emails/v1/order.vue`     | `/__emails/v1/order`          | `POST /api/emails/v1/order`   |
+
+---
+
+## Sending Emails
+
+The generated `POST` endpoints render email HTML via MJML. To send, register a Nitro plugin that listens for the `nuxt-gen-emails:send` hook.
+
+### Server plugin
 
 ```ts
 // server/plugins/gen-emails.ts
 export default defineNitroPlugin((nitro) => {
-  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }: { html: string, data: { to?: string, from?: string, subject?: string } & Record<string, unknown> }) => {
-    // Your email sending logic here.
-    // `html` is the fully rendered email HTML string.
-    // `data` is `sendData` from the request body.
+  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }) => {
+    // data contains: { to?, from?, subject?, ...anything from sendData }
     console.log('Sending email to:', data.to)
+    // Your provider logic here (SendGrid, SES, Postmark, etc.)
   })
 })
 ```
 
-### SendGrid example (using the SDK)
-
-Install the SendGrid SDK in your project:
+### SendGrid example
 
 ```bash
 npm install @sendgrid/mail
 ```
-
-Set your API key as an environment variable (e.g. in `.env`):
-
-```
-SENDGRID_API_KEY=SG.your_api_key_here
-```
-
-Then create the server plugin:
 
 ```ts
 // server/plugins/gen-emails.ts
@@ -319,166 +337,136 @@ import sgMail from '@sendgrid/mail'
 export default defineNitroPlugin((nitro) => {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY!)
 
-  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }: { html: string, data: { to?: string, from?: string, subject?: string } & Record<string, unknown> }) => {
-    const msg = {
+  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }) => {
+    await sgMail.send({
       to: data.to as string,
       from: (data.from as string) || 'noreply@yourdomain.com',
       subject: (data.subject as string) || 'No Subject',
       html,
-    }
-
-    try {
-      const [response] = await sgMail.send(msg)
-      console.log('[gen-emails] Email sent successfully, status:', response.statusCode)
-    }
-    catch (error) {
-      console.error('[gen-emails] SendGrid error:', error)
-      throw error
-    }
+    })
   })
 })
 ```
 
-> **Note:** The playground included with this module uses this exact implementation. See [`playground/server/plugins/gen-emails.ts`](playground/server/plugins/gen-emails.ts) for the working reference.
-
-### How it works
-
-When a `POST` request hits an email endpoint (e.g., `/api/emails/v1/order-confirmation`):
-
-1. `templateData` from the request body is passed as props to the Vue email template
-2. `@vue-email/render` renders the template to an HTML string
-3. The Nitro hook `nuxt-gen-emails:send` is called with `{ html, data }` where `data` is `sendData`
-4. The response always returns `{ success: true, html: "..." }` so you can inspect the rendered output
-
-### Sending behavior
-
-- If you configure a Nitro plugin that listens to `nuxt-gen-emails:send`, the module passes your `sendData` to that hook and your plugin can send the email through your provider (SendGrid, SES, etc.).
-- If you do not configure that Nitro hook plugin, the endpoint still renders the email template and returns the rendered HTML in the `POST` response.
-- In both cases, the API response includes the rendered `html` so you can preview/debug the final output.
-
-### Example API call
+### API call
 
 ```bash
-curl -X POST http://localhost:3000/api/emails/v1/order-confirmation \
+curl -X POST http://localhost:3000/api/emails/welcome \
   -H "Content-Type: application/json" \
   -d '{
     "templateData": {
-      "customerName": "Jane Doe",
-      "orderNumber": "ORD-123456",
-      "orderDate": "February 17, 2026",
-      "totalAmount": 89.99
+      "heading": "Welcome!",
+      "message": "Thanks for signing up.",
+      "sections": [
+        { "heading": "Next Steps", "body": "Check your dashboard." }
+      ]
     },
     "sendData": {
-      "to": "jane@example.com",
-      "subject": "Your Order is Confirmed!"
+      "to": "user@example.com",
+      "subject": "Welcome aboard"
     }
   }'
 ```
 
+### How it works
+
+1. `templateData` from the request body is passed directly to the Handlebars template (no transformations)
+2. MJML compiles the result into email-safe HTML
+3. The `nuxt-gen-emails:send` hook is called with `{ html, data }` where `data` is `sendData`
+4. The response always returns `{ success: true, html: "..." }`
+
+If no Nitro plugin is configured, the endpoint still renders and returns the HTML — useful for testing.
+
 ---
 
-## 🔧 7. Module Options
+## Module Options
 
-| Option                | Type       | Default    | Description                                                        |
-|-----------------------|------------|------------|--------------------------------------------------------------------|
-| `emailDir`            | `string`   | `'emails'` | Directory containing email templates (relative to `srcDir`)        |
-| `disablePreviewInProd` | `boolean`  | `true`     | When `true`, the `/__emails/` preview UI is not registered in production builds. API routes are unaffected. |
-
-Full config key: `nuxtGenerationEmails`
+| Option                 | Type      | Default    | Description                                                         |
+|------------------------|-----------|------------|---------------------------------------------------------------------|
+| `emailDir`             | `string`  | `'emails'` | Directory containing email templates (relative to `srcDir`)         |
+| `disablePreviewInProd` | `boolean` | `true`     | When `true`, `/__emails/` preview pages are not registered in production. API routes are unaffected. |
 
 ```ts
 export default defineNuxtConfig({
   nuxtGenerationEmails: {
     emailDir: 'emails',
-    disablePreviewInProd: true, // default — preview pages are dev-only
+    disablePreviewInProd: true,
   },
 })
 ```
 
-### Nitro hook
-
-| Hook                      | Payload                                      | Description                                  |
-|---------------------------|-----------------------------------------------|----------------------------------------------|
-| `nuxt-gen-emails:send`    | `{ html: string, data: { to?: string, from?: string, subject?: string } & Record<string, unknown> }` | Called after rendering; wire your send logic here |
+> Enable Nitro's OpenAPI support for auto-generated API docs:
+>
+> ```ts
+> nitro: {
+>   experimental: { openAPI: true },
+> },
+> ```
 
 ---
 
-## 🔒 8. Securing API Endpoints
+## Auto-Imports
 
-The generated `POST /api/emails/...` endpoints are registered in all environments (dev and production). In production, you should protect them with server middleware to prevent unauthorized access.
+### Client-side
 
-### Using Nuxt server middleware
+| Function | Description |
+|----------|-------------|
+| `registerMjmlComponents()` | Registers all `.mjml` files from `components/` as Handlebars partials |
+| `encodeStoreToUrlParams(store)` | Encode a props object into URL search parameters |
+| `generateShareableUrl(store)` | Generate a shareable URL with encoded props |
 
-Create a server middleware file that gates access to the email API routes:
+### Server-side
+
+| Function | Description |
+|----------|-------------|
+| `encodeStoreToUrlParams(store)` | Encode a props object into URL search parameters |
+
+---
+
+## Securing API Endpoints
+
+The generated endpoints are registered in all environments. Protect them in production with server middleware:
 
 ```ts
 // server/middleware/protect-emails.ts
-import { defineEventHandler, createError, getHeader } from 'h3'
-
 export default defineEventHandler((event) => {
-  // Only apply to email API routes
   if (!event.path?.startsWith('/api/emails/')) return
 
   const apiKey = getHeader(event, 'x-api-key')
-
   if (apiKey !== process.env.EMAIL_API_KEY) {
     throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
   }
 })
 ```
 
-Then set `EMAIL_API_KEY` in your environment and include the header in requests:
+---
 
-```bash
-curl -X POST http://localhost:3000/api/emails/v1/order-confirmation \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: your-secret-key" \
-  -d '{ "templateData": {}, "sendData": {} }'
-```
+## CLI Reference
 
-You can also use session-based auth, JWT validation, or any other pattern — the middleware runs before the generated route handler so you have full control.
+| Command | Description |
+|---------|-------------|
+| `npx nuxt-gen-emails setup` | Scaffold the emails directory with components and an example template |
+| `npx nuxt-gen-emails add <name>` | Create a new email template (`.vue` + `.mjml` pair) |
 
 ---
 
-## 🧩 9. Auto-Imports
-
-The module auto-imports these utilities for convenience:
-
-### Client-side
-
-- `encodeStoreToUrlParams(store)` — Encode a props object into URL search parameters
-- `generateShareableUrl(store)` — Generate a full shareable URL for the current template with encoded props
-
-### Server-side
-
-- `encodeStoreToUrlParams(store)` — Encode a props object into URL search parameters (also available server-side)
-
----
-
-## 🏗️ Development
+## Development
 
 <details>
   <summary>Local development</summary>
 
   ```bash
-  # Install dependencies
   npm install
-
-  # Generate type stubs
   npm run dev:prepare
-
-  # Develop with the playground
   npm run dev
 
-  # Build the playground
-  npm run dev:build
+  # CLI commands
+  npm run cli:setup
+  npm run cli:add
 
-  # Run ESLint
+  # Quality
   npm run lint
-
-  # Run Vitest
   npm run test
-  npm run test:watch
   ```
 
 </details>

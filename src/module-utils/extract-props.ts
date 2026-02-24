@@ -118,37 +118,119 @@ function extractPropTypesFromSource(scriptContent: string): Record<string, Extra
  * Parse the `withDefaults(defineProps<…>(), { ... })` call from source text
  * and extract the defaults object literal.
  *
- * Uses a simple regex + JSON.parse approach for literal values.
- * Falls back gracefully for non-literal defaults (functions, expressions).
+ * Uses balanced-delimiter matching to correctly handle nested structures
+ * (arrays, objects) and arrow-function factory defaults.
  */
 function extractDefaultsFromSource(scriptContent: string): Record<string, unknown> {
-  // Match withDefaults(defineProps<...>(), { ... })
-  // We need to find the second argument to withDefaults — the defaults object.
-  const withDefaultsMatch = scriptContent.match(
-    /withDefaults\s*\(\s*defineProps\s*<[^>]*>\s*\(\s*\)\s*,\s*(\{[\s\S]*?\})\s*\)/,
-  )
-
-  if (!withDefaultsMatch) return {}
-
-  const defaultsText = withDefaultsMatch[1]
+  const defaultsText = extractDefaultsObjectText(scriptContent)
   if (!defaultsText) return {}
 
   try {
-    // Convert JS object literal to JSON-parseable string:
-    // - Replace single quotes with double quotes
-    // - Add quotes around unquoted keys
-    // - Remove trailing commas
-    const jsonish = defaultsText
-      .replace(/'/g, '"') // single → double quotes
-      .replace(/(\w+)\s*:/g, '"$1":') // unquoted keys → quoted
-      .replace(/,\s*([\]}])/g, '$1') // trailing commas
-
-    return JSON.parse(jsonish)
+    // Evaluate the defaults object as a JS expression.
+    // Arrow-function factories like `() => [...]` are called to get actual values.
+    // eslint-disable-next-line no-new-func
+    const fn = new Function(`
+      const _defaults = (${defaultsText});
+      const _result = {};
+      for (const [k, v] of Object.entries(_defaults)) {
+        _result[k] = typeof v === 'function' ? v() : v;
+      }
+      return _result;
+    `)
+    return fn() as Record<string, unknown>
   }
   catch {
-    // If JSON parse fails, fall back to line-by-line extraction for primitives
+    // Fall back to line-by-line extraction for primitives
     return extractPrimitivesFromObjectLiteral(defaultsText)
   }
+}
+
+/**
+ * Extract the defaults object text from `withDefaults(defineProps<...>(), { ... })`
+ * using balanced delimiter matching to correctly handle nested structures.
+ */
+function extractDefaultsObjectText(scriptContent: string): string | null {
+  const wdIdx = scriptContent.indexOf('withDefaults(')
+  if (wdIdx === -1) return null
+
+  // Start after the '(' of withDefaults(
+  const start = scriptContent.indexOf('(', wdIdx + 'withDefaults'.length)
+  if (start === -1) return null
+
+  let depth = 1
+  let i = start + 1
+  let separatorComma = -1
+
+  while (i < scriptContent.length && depth > 0) {
+    const ch = scriptContent[i]!
+
+    // Skip string literals
+    if (ch === '\'' || ch === '"') {
+      const quote = ch
+      i++
+      while (i < scriptContent.length) {
+        if (scriptContent[i] === '\\') { i += 2; continue }
+        if (scriptContent[i] === quote) break
+        i++
+      }
+      i++
+      continue
+    }
+
+    // Skip template literals
+    if (ch === '`') {
+      i++
+      while (i < scriptContent.length) {
+        if (scriptContent[i] === '\\') { i += 2; continue }
+        if (scriptContent[i] === '`') break
+        if (scriptContent[i] === '$' && scriptContent[i + 1] === '{') {
+          i += 2
+          let tdepth = 1
+          while (i < scriptContent.length && tdepth > 0) {
+            if (scriptContent[i] === '{') tdepth++
+            else if (scriptContent[i] === '}') tdepth--
+            if (tdepth > 0) i++
+          }
+        }
+        i++
+      }
+      i++
+      continue
+    }
+
+    // Skip line comments
+    if (ch === '/' && scriptContent[i + 1] === '/') {
+      i = scriptContent.indexOf('\n', i)
+      if (i === -1) break
+      i++
+      continue
+    }
+
+    // Skip block comments
+    if (ch === '/' && scriptContent[i + 1] === '*') {
+      i = scriptContent.indexOf('*/', i) + 2
+      if (i < 2) break
+      continue
+    }
+
+    if (ch === '(' || ch === '{' || ch === '[') {
+      depth++
+    }
+    else if (ch === ')' || ch === '}' || ch === ']') {
+      depth--
+      if (depth === 0) break // closing ) of withDefaults(...)
+    }
+    else if (ch === ',' && depth === 1 && separatorComma === -1) {
+      separatorComma = i
+    }
+
+    i++
+  }
+
+  if (separatorComma === -1) return null
+
+  const secondArg = scriptContent.slice(separatorComma + 1, i).trim()
+  return secondArg || null
 }
 
 /**

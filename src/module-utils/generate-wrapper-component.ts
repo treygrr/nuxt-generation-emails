@@ -110,6 +110,12 @@ onMounted(() => {
           if (!Number.isNaN(n)) emailProps[key] = n
         } else if (typeof current === 'boolean') {
           emailProps[key] = value === 'true'
+        } else if (typeof current === 'object' && current !== null) {
+          try {
+            emailProps[key] = JSON.parse(value)
+          } catch {
+            // If JSON parse fails, leave the default value
+          }
         } else {
           emailProps[key] = value
         }

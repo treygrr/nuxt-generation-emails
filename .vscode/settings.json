@@ -1,3 +1,4 @@
 {
-  "eslint.useFlatConfig": true
+  "eslint.useFlatConfig": true,
+  "files.associations": { "*.mjml": "handlebars" }
 }

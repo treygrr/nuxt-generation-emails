@@ -31,6 +31,10 @@ export function addEmailPages(
     const stat = fs.statSync(fullPath)
 
     if (stat.isDirectory()) {
+      // Skip the components directory (reserved for reusable MJML partials)
+      if (entry === 'components') {
+        continue
+      }
       addEmailPages(fullPath, pages, options, `${routePrefix}/${entry}`)
     }
     else if (entry.endsWith('.vue')) {

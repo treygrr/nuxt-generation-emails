@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import EmailTemplateSelector from '../components/EmailTemplateSelector.vue'
 import ApiTester from '../components/ApiTester.vue'
+import NgeObjectEditor from '../components/NgeObjectEditor.vue'
 import { computed, generateShareableUrl, ref, useAttrs, useRoute, useRouter } from '#imports'
 
 defineOptions({ inheritAttrs: false })
@@ -33,15 +34,21 @@ const templates = computed(() => {
 
 const showControls = ref(true)
 const copySuccess = ref(false)
+const collapseSignal = ref(0)
 
 // Editable fields: only show string and number props in the sidebar.
-// Complex/object props are shown in the JSON editor in the API tester.
 const editableFields = computed<PropDefinition[]>(() => {
   if (!props.propDefinitions) return []
   return props.propDefinitions.filter(p => p.type === 'string' || p.type === 'number')
 })
 
-const hasControls = computed(() => !!props.emailProps && editableFields.value.length > 0)
+// Object/array fields: complex props shown as JSON textareas.
+const objectFields = computed<PropDefinition[]>(() => {
+  if (!props.propDefinitions) return []
+  return props.propDefinitions.filter(p => p.type === 'object')
+})
+
+const hasControls = computed(() => !!props.emailProps && (editableFields.value.length > 0 || objectFields.value.length > 0))
 
 const previewRenderKey = computed(() => {
   if (!props.emailProps) return route.fullPath
@@ -74,6 +81,12 @@ function updateProp(key: string, value: string, type: PropDefinition['type']): v
     // eslint-disable-next-line vue/no-mutating-props
     props.emailProps[key] = value
   }
+}
+
+function updateObjectProp(key: string, value: unknown): void {
+  if (!props.emailProps) return
+  // eslint-disable-next-line vue/no-mutating-props
+  props.emailProps[key] = value
 }
 
 async function copyShareableUrl() {
@@ -133,6 +146,13 @@ async function copyShareableUrl() {
       >
         <div class="nge-email-preview__controls-header">
           <h3>Template Props</h3>
+          <button
+            v-if="objectFields.length > 0"
+            class="nge-email-preview__collapse-btn"
+            @click="collapseSignal++"
+          >
+            Collapse All
+          </button>
         </div>
         <div class="nge-email-preview__controls-content">
           <div
@@ -158,6 +178,14 @@ async function copyShareableUrl() {
               @input="updateProp(field.name, ($event.target as HTMLInputElement).value, field.type)"
             >
           </div>
+          <NgeObjectEditor
+            v-for="field in objectFields"
+            :key="field.name"
+            :model-value="emailProps?.[field.name]"
+            :label="formatFieldLabel(field.name)"
+            :collapse-signal="collapseSignal"
+            @update:model-value="updateObjectProp(field.name, $event)"
+          />
           <ApiTester
             v-if="emailProps"
             :data-object="emailProps"
@@ -276,6 +304,9 @@ async function copyShareableUrl() {
   background: white;
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .nge-email-preview__controls-header h3 {
@@ -285,6 +316,24 @@ async function copyShareableUrl() {
   font-weight: 600;
   color: #111827;
   letter-spacing: -0.01em;
+}
+
+.nge-email-preview__collapse-btn {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.nge-email-preview__collapse-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
 }
 
 .nge-email-preview__controls-content {

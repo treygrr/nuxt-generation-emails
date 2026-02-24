@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, writeFileSync, readdirSync, statSync } from 'nod
 import { consola } from 'consola'
 import { loadNuxtConfig } from '@nuxt/kit'
 import { generateVueTemplate } from './utils/generate-vue-template'
+import { generateMjmlTemplate } from './utils/generate-mjml-template'
 
 interface ParsedTemplateName {
   emailName: string
@@ -13,6 +14,7 @@ interface ParsedTemplateName {
 interface TemplateFiles {
   emailPath: string
   vueFile: string
+  mjmlFile: string
 }
 
 async function findEmailsDir(): Promise<string> {
@@ -125,17 +127,24 @@ function createEmailFiles(
   emailPath: string,
 ): TemplateFiles {
   const vueFile = join(targetDir, `${emailName}.vue`)
+  const mjmlFile = join(targetDir, `${emailName}.mjml`)
 
   checkFileExists(vueFile)
+  checkFileExists(mjmlFile)
 
   const vueTemplate = generateVueTemplate(emailName)
+  const mjmlTemplate = generateMjmlTemplate(emailName)
 
   writeFileSync(vueFile, vueTemplate, 'utf-8')
   consola.success(`Created email template: ${vueFile}`)
 
+  writeFileSync(mjmlFile, mjmlTemplate, 'utf-8')
+  consola.success(`Created MJML template: ${mjmlFile}`)
+
   return {
     emailPath,
     vueFile,
+    mjmlFile,
   }
 }
 

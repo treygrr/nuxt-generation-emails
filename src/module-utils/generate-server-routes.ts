@@ -42,11 +42,22 @@ export function generateServerRoutes(
       const stat = fs.statSync(fullPath)
 
       if (stat.isDirectory()) {
+        // Skip the components directory (reserved for reusable MJML partials)
+        if (entry === 'components') {
+          continue
+        }
         processEmailDirectory(fullPath, `${routePrefix}/${entry}`)
       }
       else if (entry.endsWith('.vue')) {
         const emailName = entry.replace('.vue', '')
         const emailPath = `${routePrefix}/${emailName}`.replace(/^\//, '')
+
+        // Verify co-located .mjml file exists
+        const mjmlPath = join(dirPath, `${emailName}.mjml`)
+        if (!fs.existsSync(mjmlPath)) {
+          console.warn(`[nuxt-gen-emails] Missing co-located MJML file for ${emailName}.vue — skipping API route. Expected: ${mjmlPath}`)
+          continue
+        }
 
         const handlerDir = routePrefix
           ? join(handlersDir, routePrefix.replace(/^\//, ''))
