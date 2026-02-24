@@ -122,24 +122,11 @@ export function scaffoldExample(emailsDir: string): void {
 
   // ── example.vue ──
   const scriptClose = '<' + '/script>'
-  const templateOpen = '<' + 'template>'
-  const templateClose = '<' + '/template>'
 
   fs.writeFileSync(
     join(emailsDir, 'example.vue'),
     `<script setup lang="ts">
-import { computed } from 'vue'
-import mjml2html from 'mjml-browser'
-import Handlebars from 'handlebars'
-import mjmlSource from './example.mjml?raw'
-
 defineOptions({ name: 'ExampleNge' })
-
-/**
- * Register MJML components for client-side preview.
- * registerMjmlComponents is auto-imported by the module.
- */
-registerMjmlComponents()
 
 interface ContentSection {
   heading: string
@@ -170,24 +157,13 @@ const props = withDefaults(defineProps<{
   ],
 })
 
-const compiledTemplate = Handlebars.compile(mjmlSource)
-
-const renderedHtml = computed(() => {
-  try {
-    const mjmlString = compiledTemplate({ ...props })
-    const result = mjml2html(mjmlString)
-    return result.html
-  }
-  catch (e: unknown) {
-    console.error('[example.vue] Error rendering MJML:', e)
-    return \`<pre style="color:red;">\${e instanceof Error ? e.message : String(e)}\\n\${e instanceof Error ? e.stack : ''}</pre>\`
-  }
-})
+/**
+ * useNgeTemplate auto-loads the sibling .mjml file, compiles it with
+ * Handlebars, and returns a reactive ComputedRef<string> of rendered HTML.
+ * MJML components from components/ are registered automatically.
+ */
+useNgeTemplate('example', props)
 ${scriptClose}
-
-${templateOpen}
-  <div v-html="renderedHtml" />
-${templateClose}
 `,
     'utf-8',
   )

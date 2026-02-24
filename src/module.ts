@@ -111,6 +111,86 @@ export function registerMjmlComponents(): void {
 `,
     })
 
+    // Generate a composable that loads all MJML templates via glob and provides
+    // a single-call API: useNgeTemplate('name', props) → ComputedRef<string>
+    const templateGlobPath = `~/${configuredEmailDir}`
+
+    addTemplate({
+      filename: 'nge/use-template.ts',
+      write: true,
+      getContents: () => `import { computed, h, getCurrentInstance } from 'vue'
+import type { ComputedRef } from 'vue'
+import mjml2html from 'mjml-browser'
+import Handlebars from 'handlebars'
+import { registerMjmlComponents } from './register-components'
+
+const mjmlTemplates: Record<string, string> = import.meta.glob(
+  ['${templateGlobPath}/**/*.mjml', '!${templateGlobPath}/components/**'],
+  { query: '?raw', import: 'default', eager: true }
+) as Record<string, string>
+
+// Build a lookup map: 'example' | 'v1/test' | 'v1/rmi/bid' → raw MJML source
+const templateMap: Record<string, string> = {}
+for (const [path, source] of Object.entries(mjmlTemplates)) {
+  const segments = path.split('/')
+  const dirIdx = segments.lastIndexOf('${configuredEmailDir}')
+  const relativeParts = dirIdx >= 0 ? segments.slice(dirIdx + 1) : [segments[segments.length - 1]]
+  const name = relativeParts.join('/').replace('.mjml', '')
+  templateMap[name] = source
+}
+
+let _componentsRegistered = false
+
+/**
+ * Load and render an MJML email template by name.
+ * Registers MJML components (Handlebars partials) automatically on first call.
+ * Sets the component's render function so no <template> block is needed.
+ *
+ * @param name - Template name relative to the emails directory (e.g. 'example', 'v1/test')
+ * @param props - Reactive props object from defineProps
+ * @returns ComputedRef<string> containing the rendered HTML
+ */
+export function useNgeTemplate(name: string, props: Record<string, unknown>): ComputedRef<string> {
+  if (!_componentsRegistered) {
+    registerMjmlComponents()
+    _componentsRegistered = true
+  }
+
+  const source = templateMap[name]
+  if (!source) {
+    const available = Object.keys(templateMap).join(', ')
+    console.error(\`[nuxt-gen-emails] Template "\${name}" not found. Available: \${available}\`)
+    const fallback = computed(() => \`<pre style="color:red;">Template "\${name}" not found</pre>\`)
+    const instance = getCurrentInstance()
+    if (instance) instance.render = () => h('div', { innerHTML: fallback.value })
+    return fallback
+  }
+
+  const compiled = Handlebars.compile(source)
+
+  const renderedHtml = computed(() => {
+    try {
+      const mjmlString = compiled({ ...props })
+      const result = mjml2html(mjmlString)
+      return result.html
+    }
+    catch (e: unknown) {
+      console.error(\`[\${name}] Error rendering MJML:\`, e)
+      return \`<pre style="color:red;">\${e instanceof Error ? e.message : String(e)}\\n\${e instanceof Error ? e.stack : ''}</pre>\`
+    }
+  })
+
+  // Set render function on the component instance so no <template> block is needed
+  const instance = getCurrentInstance()
+  if (instance) {
+    instance.render = () => h('div', { innerHTML: renderedHtml.value })
+  }
+
+  return renderedHtml
+}
+`,
+    })
+
     // Expose emails directory via runtime config (functions cannot be serialized)
     nuxt.options.runtimeConfig.nuxtGenEmails = {
       emailsDir,
@@ -129,6 +209,10 @@ export function registerMjmlComponents(): void {
       {
         name: 'registerMjmlComponents',
         from: join(nuxt.options.buildDir, 'nge/register-components'),
+      },
+      {
+        name: 'useNgeTemplate',
+        from: join(nuxt.options.buildDir, 'nge/use-template'),
       },
     ])
 

@@ -1,28 +1,13 @@
-export function generateVueTemplate(emailName: string): string {
+export function generateVueTemplate(emailName: string, emailRelativePath?: string): string {
   const capitalizedEmailName = emailName.charAt(0).toUpperCase() + emailName.slice(1)
   const componentName = `${capitalizedEmailName}Nge`
+  // Template name for useNgeTemplate — relative path from the emails dir, e.g. 'example' or 'v1/test'
+  const templatePath = emailRelativePath ?? emailName
 
   const scriptClose = '<' + '/script>'
-  const templateOpen = '<' + 'template>'
-  const templateClose = '<' + '/template>'
 
   return `<script setup lang="ts">
-import { computed } from 'vue'
-import mjml2html from 'mjml-browser'
-import Handlebars from 'handlebars'
-import mjmlSource from './${emailName}.mjml?raw'
-
 defineOptions({ name: '${componentName}' })
-
-/**
- * MJML Components (reusable MJML snippets)
- * Place .mjml files in emails/components/ and they are auto-registered
- * as Handlebars partials on the server side.
- *
- * For client-side preview, uncomment the line below to register them here too.
- * Then use {{> componentName}} in your .mjml template.
- */
-// registerMjmlComponents()
 
 /**
  * Define interfaces for complex prop types here.
@@ -55,27 +40,12 @@ const props = withDefaults(defineProps<{
   ],
 })
 
-const compiledTemplate = Handlebars.compile(mjmlSource)
-
-const renderedHtml = computed(() => {
-  try {
-    const mjmlString = compiledTemplate({ ...props })
-    const result = mjml2html(mjmlString)
-    return result.html
-  }
-  catch (e: unknown) {
-    console.error('[${emailName}.vue] Error rendering MJML:', e)
-    return \`<pre style="color:red;">\${
-      e instanceof Error ? e.message : String(e)
-    }\\n\${
-      e instanceof Error ? e.stack : ''
-    }</pre>\`
-  }
-})
+/**
+ * useNgeTemplate auto-loads the sibling .mjml file, compiles it with
+ * Handlebars, and returns a reactive ComputedRef<string> of rendered HTML.
+ * MJML components from components/ are registered automatically.
+ */
+useNgeTemplate('${templatePath}', props)
 ${scriptClose}
-
-${templateOpen}
-  <div v-html="renderedHtml" />
-${templateClose}
 `
 }

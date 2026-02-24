@@ -133,15 +133,7 @@ Every email is a pair of files:
 
 ```vue
 <script setup lang="ts">
-import { computed } from 'vue'
-import mjml2html from 'mjml-browser'
-import Handlebars from 'handlebars'
-import mjmlSource from './example.mjml?raw'
-
 defineOptions({ name: 'ExampleNge' })
-
-// Auto-imported: registers all .mjml files from components/ as Handlebars partials
-registerMjmlComponents()
 
 interface ContentSection {
   heading: string
@@ -163,27 +155,13 @@ const props = withDefaults(defineProps<{
   ],
 })
 
-const compiledTemplate = Handlebars.compile(mjmlSource)
-
-const renderedHtml = computed(() => {
-  try {
-    const mjmlString = compiledTemplate({ ...props })
-    return mjml2html(mjmlString).html
-  }
-  catch (e: unknown) {
-    return `<pre style="color:red;">${e instanceof Error ? e.message : String(e)}</pre>`
-  }
-})
+useNgeTemplate('example', props)
 </script>
-
-<template>
-  <div v-html="renderedHtml" />
-</template>
 ```
 
 ### Key architecture rules
 
-1. **Every Handlebars variable must be a direct prop** — No computed values or transformations. The server-side API route calls `compiledTemplate({ ...templateData })` with the raw POST body, so if a variable isn't a prop, it won't render when sending.
+1. **Every Handlebars variable must be a direct prop** — No computed values or transformations. The server-side API route passes `templateData` straight to the Handlebars template, so if a variable isn't a prop, it won't render when sending.
 2. **Use `withDefaults(defineProps<{...}>())`** — Props and defaults are extracted at build time for the preview UI, API docs, and OpenAPI metadata.
 3. **Make all props optional** (`?:`) — Defaults provide sensible preview values.
 
@@ -241,7 +219,9 @@ Components have access to all the props passed to the parent template — Handle
 
 ### Client-side registration
 
-Call `registerMjmlComponents()` in your Vue SFC to register components for the preview UI. This is auto-imported by the module — no import needed:
+`useNgeTemplate()` automatically registers all components on first call — no manual setup needed.
+
+If you need to register components separately (e.g. in a custom composable), `registerMjmlComponents()` is also auto-imported:
 
 ```ts
 registerMjmlComponents()
@@ -411,7 +391,8 @@ export default defineNuxtConfig({
 
 | Function | Description |
 |----------|-------------|
-| `registerMjmlComponents()` | Registers all `.mjml` files from `components/` as Handlebars partials |
+| `useNgeTemplate(name, props)` | Loads the MJML template, compiles with Handlebars, registers components, and sets the render function — no `<template>` block needed |
+| `registerMjmlComponents()` | Manually registers all `.mjml` files from `components/` as Handlebars partials (called automatically by `useNgeTemplate`) |
 | `encodeStoreToUrlParams(store)` | Encode a props object into URL search parameters |
 | `generateShareableUrl(store)` | Generate a shareable URL with encoded props |
 

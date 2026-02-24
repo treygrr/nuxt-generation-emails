@@ -1,9 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import mjml2html from 'mjml-browser'
-import Handlebars from 'handlebars'
-import mjmlSource from './test.mjml?raw'
-
 defineOptions({
   name: 'TestNge',
 })
@@ -52,15 +47,15 @@ const props = withDefaults(defineProps<{
   supportEmail: 'support@northwindoutfitters.com',
   orderUrl: 'https://example.com/orders/NGE-904381',
   shippingMethod: 'Standard (3-5 business days)',
-  paymentMethod: 'Visa \u2022\u2022\u2022\u2022 4242',
+  paymentMethod: 'Visa •••• 4242',
   formattedSubtotal: '$136.00',
   formattedShippingCost: '$8.99',
   formattedTax: '$14.82',
   formattedTotal: '$159.81',
   items: () => [
-    { name: 'Alpine Trail Runner \u2014 Moss / Size 10', quantity: 1, formattedUnitPrice: '$89.00', formattedTotal: '$89.00' },
+    { name: 'Alpine Trail Runner — Moss / Size 10', quantity: 1, formattedUnitPrice: '$89.00', formattedTotal: '$89.00' },
     { name: 'Merino Wool Hiking Socks (3-pack)', quantity: 1, formattedUnitPrice: '$24.00', formattedTotal: '$24.00' },
-    { name: 'Quick-Dry Trail Cap \u2014 Slate', quantity: 1, formattedUnitPrice: '$23.00', formattedTotal: '$23.00' },
+    { name: 'Quick-Dry Trail Cap — Slate', quantity: 1, formattedUnitPrice: '$23.00', formattedTotal: '$23.00' },
   ],
   shippingAddress: () => ({
     name: 'Avery Johnson',
@@ -73,21 +68,5 @@ const props = withDefaults(defineProps<{
   }),
 })
 
-const compiledTemplate = Handlebars.compile(mjmlSource)
-
-const renderedHtml = computed(() => {
-  try {
-    const mjmlString = compiledTemplate({ ...props })
-    const result = mjml2html(mjmlString)
-    return result.html
-  }
-  catch (e: unknown) {
-    console.error('[test.vue] Error rendering MJML:', e)
-    return `<pre style="color:red;">${e instanceof Error ? e.message : String(e)}\n${e instanceof Error ? e.stack : ''}</pre>`
-  }
-})
+useNgeTemplate('v1/test', props)
 </script>
-
-<template>
-  <div v-html="renderedHtml" />
-</template>

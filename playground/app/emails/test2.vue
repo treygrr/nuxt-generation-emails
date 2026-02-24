@@ -1,16 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import mjml2html from 'mjml-browser'
-import Handlebars from 'handlebars'
-import mjmlSource from './test2.mjml?raw'
-
 defineOptions({ name: 'Test2Nge' })
 
-/**
- * Define interfaces for complex prop types here.
- * Every Handlebars variable in the .mjml template must map to a prop
- * so the server-side API route can pass templateData straight through.
- */
 interface ContentSection {
   heading: string
   body: string
@@ -37,25 +27,6 @@ const props = withDefaults(defineProps<{
   ],
 })
 
-const compiledTemplate = Handlebars.compile(mjmlSource)
-
-const renderedHtml = computed(() => {
-  try {
-    const mjmlString = compiledTemplate({ ...props })
-    const result = mjml2html(mjmlString)
-    return result.html
-  }
-  catch (e: unknown) {
-    console.error('[test2.vue] Error rendering MJML:', e)
-    return `<pre style="color:red;">${
-      e instanceof Error ? e.message : String(e)
-    }\n${
-      e instanceof Error ? e.stack : ''
-    }</pre>`
-  }
-})
+useNgeTemplate('test2', props)
 </script>
 
-<template>
-  <div v-html="renderedHtml" />
-</template>

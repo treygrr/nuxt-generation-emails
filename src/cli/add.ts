@@ -132,7 +132,7 @@ function createEmailFiles(
   checkFileExists(vueFile)
   checkFileExists(mjmlFile)
 
-  const vueTemplate = generateVueTemplate(emailName)
+  const vueTemplate = generateVueTemplate(emailName, emailPath)
   const mjmlTemplate = generateMjmlTemplate(emailName)
 
   writeFileSync(vueFile, vueTemplate, 'utf-8')

@@ -128,20 +128,9 @@ function exampleMjml(): string {
 
 function exampleVue(): string {
   const scriptClose = '<' + '/script>'
-  const templateOpen = '<' + 'template>'
-  const templateClose = '<' + '/template>'
-  const bt = '`' // backtick — avoids escaping issues in the outer template literal
-  const ds = '$' // dollar sign
 
   return `<script setup lang="ts">
-import { computed } from 'vue'
-import mjml2html from 'mjml-browser'
-import Handlebars from 'handlebars'
-import mjmlSource from './example.mjml?raw'
-
 defineOptions({ name: 'ExampleNge' })
-
-registerMjmlComponents()
 
 interface ContentSection {
   heading: string
@@ -172,24 +161,8 @@ const props = withDefaults(defineProps<{
   ],
 })
 
-const compiledTemplate = Handlebars.compile(mjmlSource)
-
-const renderedHtml = computed(() => {
-  try {
-    const mjmlString = compiledTemplate({ ...props })
-    const result = mjml2html(mjmlString)
-    return result.html
-  }
-  catch (e: unknown) {
-    console.error('[example.vue] Error rendering MJML:', e)
-    return ${bt}<pre style="color:red;">${ds}{e instanceof Error ? e.message : String(e)}\\n${ds}{e instanceof Error ? e.stack : ''}</pre>${bt}
-  }
-})
+useNgeTemplate('example', props)
 ${scriptClose}
-
-${templateOpen}
-  <div v-html="renderedHtml" />
-${templateClose}
 `
 }
 
