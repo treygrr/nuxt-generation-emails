@@ -120,9 +120,14 @@ export function registerMjmlComponents(): void {
       write: true,
       getContents: () => `import { computed, h, getCurrentInstance } from 'vue'
 import type { ComputedRef } from 'vue'
-import mjml2html from 'mjml-browser'
 import Handlebars from 'handlebars'
 import { registerMjmlComponents } from './register-components'
+
+// Lazy-load mjml-browser only on the client to avoid "window is not defined" during SSR
+let mjml2html: ((mjml: string) => { html: string; errors: unknown[] }) | null = null
+if (import.meta.client) {
+  mjml2html = (await import('mjml-browser')).default
+}
 
 const mjmlTemplates: Record<string, string> = import.meta.glob(
   ['${templateGlobPath}/**/*.mjml', '!${templateGlobPath}/components/**'],
@@ -169,6 +174,8 @@ export function useNgeTemplate(name: string, props: Record<string, unknown>): Co
   const compiled = Handlebars.compile(source)
 
   const renderedHtml = computed(() => {
+    // mjml-browser requires window — skip rendering during SSR
+    if (!mjml2html) return ''
     try {
       const mjmlString = compiled({ ...props })
       const result = mjml2html(mjmlString)
