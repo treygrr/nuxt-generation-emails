@@ -1,6 +1,6 @@
 {
   "name": "nuxt-generation-emails",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A Nuxt module for authoring, previewing, and sending transactional email templates with MJML and Handlebars.",
   "author": "nullcarry@icloud.com",
   "repository": {
