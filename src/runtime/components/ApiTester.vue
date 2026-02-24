@@ -13,7 +13,7 @@ const responseData = ref<unknown>(null)
 const error = ref<string>('')
 const copySuccess = ref(false)
 const copyHtmlSuccess = ref(false)
-const lastUsedEmail = useCookie<string>('nuxt-gen-emails-last-email', {
+const lastUsedEmail = useCookie<string>('nuxt-generation-emails-last-email', {
   default: () => '',
   sameSite: 'lax',
 })

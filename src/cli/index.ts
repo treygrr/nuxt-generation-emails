@@ -5,8 +5,8 @@ import setupCommand from './setup'
 
 const main = defineCommand({
   meta: {
-    name: 'nuxt-gen-emails',
-    description: 'CLI for nuxt-gen-emails module',
+    name: 'nuxt-generation-emails',
+    description: 'CLI for nuxt-generation-emails module',
     version: '1.0.0',
   },
   subCommands: {

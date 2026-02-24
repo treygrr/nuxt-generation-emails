@@ -5,7 +5,7 @@ import { consola } from 'consola'
 import { addEmailPages } from './module-utils/add-email-pages'
 import { generateServerRoutes } from './module-utils/generate-server-routes'
 
-/** Payload passed to the `nuxt-gen-emails:send` Nitro runtime hook. */
+/** Payload passed to the `nuxt-generation-emails:send` Nitro runtime hook. */
 export type NuxtGenEmailsSendData<TAdditional extends Record<string, unknown> = Record<string, unknown>> = {
   /** Recipient email address. */
   to?: string
@@ -15,7 +15,7 @@ export type NuxtGenEmailsSendData<TAdditional extends Record<string, unknown> = 
   subject?: string
 } & TAdditional
 
-/** Payload passed to the `nuxt-gen-emails:send` Nitro runtime hook. */
+/** Payload passed to the `nuxt-generation-emails:send` Nitro runtime hook. */
 export interface NuxtGenEmailsSendPayload<TSendData extends Record<string, unknown> = NuxtGenEmailsSendData> {
   /** The rendered HTML string of the email template. */
   html: string
@@ -50,7 +50,7 @@ export default defineNuxtModule<ModuleOptions>({
     // Inject Nitro runtime hook type augmentation into .nuxt/types/
     // Pass both nuxt and nitro contexts so the types are visible in both client and server tsconfigs
     addTypeTemplate({
-      filename: 'types/nuxt-gen-emails-nitro.d.ts',
+      filename: 'types/nuxt-generation-emails-nitro.d.ts',
       getContents: () => `
 export interface NuxtGenEmailsSendPayload {
   html: string
@@ -73,12 +73,12 @@ export interface NuxtGenEmailsApiBody<
 
 declare module 'nitropack' {
   interface NitroRuntimeHooks {
-    'nuxt-gen-emails:send': (payload: NuxtGenEmailsSendPayload) => void | Promise<void>
+    'nuxt-generation-emails:send': (payload: NuxtGenEmailsSendPayload) => void | Promise<void>
   }
 }
 declare module 'nitropack/types' {
   interface NitroRuntimeHooks {
-    'nuxt-gen-emails:send': (payload: NuxtGenEmailsSendPayload) => void | Promise<void>
+    'nuxt-generation-emails:send': (payload: NuxtGenEmailsSendPayload) => void | Promise<void>
   }
 }
 `,
@@ -159,7 +159,7 @@ export function useNgeTemplate(name: string, props: Record<string, unknown>): Co
   const source = templateMap[name]
   if (!source) {
     const available = Object.keys(templateMap).join(', ')
-    console.error(\`[nuxt-gen-emails] Template "\${name}" not found. Available: \${available}\`)
+    console.error(\`[nuxt-generation-emails] Template "\${name}" not found. Available: \${available}\`)
     const fallback = computed(() => \`<pre style="color:red;">Template "\${name}" not found</pre>\`)
     const instance = getCurrentInstance()
     if (instance) instance.render = () => h('div', { innerHTML: fallback.value })
@@ -258,7 +258,7 @@ export function useNgeTemplate(name: string, props: Record<string, unknown>): Co
     // In dev mode, watch the emails directory for added/removed .vue files.
     if (nuxt.options.dev && fs.existsSync(emailsDir)) {
       const relDir = relative(nuxt.options.rootDir, emailsDir)
-      consola.info(`[nuxt-gen-emails] Watching for new templates in ${relDir}/`)
+      consola.info(`[nuxt-generation-emails] Watching for new templates in ${relDir}/`)
 
       // Add emails directory to Nuxt's native watch list
       nuxt.options.watch.push(emailsDir + '/**/*.vue')
@@ -269,13 +269,13 @@ export function useNgeTemplate(name: string, props: Record<string, unknown>): Co
         const rel = relative(emailsDir, absolutePath)
 
         if (event === 'add' && (relativePath.endsWith('.vue') || relativePath.endsWith('.mjml'))) {
-          consola.success(`[nuxt-gen-emails] New template detected: ${rel}`)
-          consola.info('[nuxt-gen-emails] Restarting to register new routes...')
+          consola.success(`[nuxt-generation-emails] New template detected: ${rel}`)
+          consola.info('[nuxt-generation-emails] Restarting to register new routes...')
           nuxt.callHook('restart')
         }
         else if (event === 'unlink' && (relativePath.endsWith('.vue') || relativePath.endsWith('.mjml'))) {
-          consola.warn(`[nuxt-gen-emails] Template removed: ${rel}`)
-          consola.info('[nuxt-gen-emails] Restarting to update routes...')
+          consola.warn(`[nuxt-generation-emails] Template removed: ${rel}`)
+          consola.info('[nuxt-generation-emails] Restarting to update routes...')
           nuxt.callHook('restart')
         }
       })

@@ -55,7 +55,7 @@ export function generateServerRoutes(
         // Verify co-located .mjml file exists
         const mjmlPath = join(dirPath, `${emailName}.mjml`)
         if (!fs.existsSync(mjmlPath)) {
-          console.warn(`[nuxt-gen-emails] Missing co-located MJML file for ${emailName}.vue — skipping API route. Expected: ${mjmlPath}`)
+          console.warn(`[nuxt-generation-emails] Missing co-located MJML file for ${emailName}.vue — skipping API route. Expected: ${mjmlPath}`)
           continue
         }
 
@@ -78,7 +78,7 @@ export function generateServerRoutes(
         const handlerContent = generateApiRoute(emailName, emailPath, examplePayload)
 
         fs.writeFileSync(handlerFilePath, handlerContent, 'utf-8')
-        console.log(`[nuxt-gen-emails] Generated API handler: ${handlerFilePath}`)
+        console.log(`[nuxt-generation-emails] Generated API handler: ${handlerFilePath}`)
 
         handlers.push({
           route: `/api/emails/${emailPath}`,

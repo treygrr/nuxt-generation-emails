@@ -134,7 +134,7 @@ export default defineEventHandler(async (event) => {
 
     const nitro = useNitroApp()
     // @ts-ignore - custom hook
-    await nitro.hooks.callHook('nuxt-gen-emails:send', { html, data: sendData })
+    await nitro.hooks.callHook('nuxt-generation-emails:send', { html, data: sendData })
 
     return { success: true, message: 'Email rendered successfully', html }
   }

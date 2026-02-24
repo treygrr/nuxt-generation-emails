@@ -46,7 +46,7 @@ export default defineNuxtConfig({
 Scaffold the emails directory with example templates and reusable components:
 
 ```bash
-npx nuxt-gen-emails setup
+npx nuxt-generation-emails setup
 ```
 
 This creates:
@@ -82,9 +82,9 @@ Then add this to your `.vscode/settings.json` so `.mjml` files get Handlebars hi
 ### 3. Add More Templates
 
 ```bash
-npx nuxt-gen-emails add welcome
-npx nuxt-gen-emails add v1/order-confirmation
-npx nuxt-gen-emails add marketing/campaigns/summer-sale
+npx nuxt-generation-emails add welcome
+npx nuxt-generation-emails add v1/order-confirmation
+npx nuxt-generation-emails add marketing/campaigns/summer-sale
 ```
 
 Each command creates a `.vue` + `.mjml` pair with a ready-to-customize starter template.
@@ -289,14 +289,14 @@ The `components/` directory is reserved — it is skipped during route generatio
 
 ## Sending Emails
 
-The generated `POST` endpoints render email HTML via MJML. To send, register a Nitro plugin that listens for the `nuxt-gen-emails:send` hook.
+The generated `POST` endpoints render email HTML via MJML. To send, register a Nitro plugin that listens for the `nuxt-generation-emails:send` hook.
 
 ### Server plugin
 
 ```ts
 // server/plugins/gen-emails.ts
 export default defineNitroPlugin((nitro) => {
-  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }) => {
+  nitro.hooks.hook('nuxt-generation-emails:send', async ({ html, data }) => {…})
     // data contains: { to?, from?, subject?, ...anything from sendData }
     console.log('Sending email to:', data.to)
     // Your provider logic here (SendGrid, SES, Postmark, etc.)
@@ -317,7 +317,7 @@ import sgMail from '@sendgrid/mail'
 export default defineNitroPlugin((nitro) => {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY!)
 
-  nitro.hooks.hook('nuxt-gen-emails:send', async ({ html, data }) => {
+  nitro.hooks.hook('nuxt-generation-emails:send', async ({ html, data }) => {
     await sgMail.send({
       to: data.to as string,
       from: (data.from as string) || 'noreply@yourdomain.com',
@@ -352,7 +352,7 @@ curl -X POST http://localhost:3000/api/emails/welcome \
 
 1. `templateData` from the request body is passed directly to the Handlebars template (no transformations)
 2. MJML compiles the result into email-safe HTML
-3. The `nuxt-gen-emails:send` hook is called with `{ html, data }` where `data` is `sendData`
+3. The `nuxt-generation-emails:send` hook is called with `{ html, data }` where `data` is `sendData`
 4. The response always returns `{ success: true, html: "..." }`
 
 If no Nitro plugin is configured, the endpoint still renders and returns the HTML — useful for testing.
@@ -426,8 +426,8 @@ export default defineEventHandler((event) => {
 
 | Command | Description |
 |---------|-------------|
-| `npx nuxt-gen-emails setup` | Scaffold the emails directory with components and an example template |
-| `npx nuxt-gen-emails add <name>` | Create a new email template (`.vue` + `.mjml` pair) |
+| `npx nuxt-generation-emails setup` | Scaffold the emails directory with components and an example template |
+| `npx nuxt-generation-emails add <name>` | Create a new email template (`.vue` + `.mjml` pair) |
 
 ---
 
