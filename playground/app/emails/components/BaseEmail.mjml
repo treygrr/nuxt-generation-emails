@@ -1,0 +1,16 @@
+<mjml>
+  <mj-head>
+    <mj-title>{{title}}</mj-title>
+    <mj-font
+      name="DM Sans"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
+    />
+    <mj-attributes>
+      <mj-all font-family="'DM Sans', Arial, Helvetica, sans-serif" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#ffffff">
+    {{> @partial-block }}
+  </mj-body>
+</mjml>
