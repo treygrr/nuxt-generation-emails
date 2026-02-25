@@ -1,7 +1,0 @@
-<mj-section background-color="#4f46e5" padding="20px 32px">
-  <mj-column>
-    <mj-text color="#ffffff" font-size="18px" font-weight="700" letter-spacing="-0.02em">
-      {{brandName}}
-    </mj-text>
-  </mj-column>
-</mj-section>
