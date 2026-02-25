@@ -1,6 +1,7 @@
 export function generateWrapperComponent(
   emailsLayoutPath: string,
   emailComponentPath: string,
+  extractedPropTypes: Record<string, 'string' | 'number' | 'boolean' | 'object' | 'unknown'> = {},
 ): string {
   const scriptClose = '<' + '/script>'
   const templateOpen = '<' + 'template>'
@@ -35,6 +36,12 @@ function inferType(ctor: unknown): 'string' | 'number' | 'boolean' | 'object' | 
   if (ctor === Number) return 'number'
   if (ctor === Boolean) return 'boolean'
   if (ctor === Object || ctor === Array) return 'object'
+  if (Array.isArray(ctor)) {
+    if (ctor.includes(String)) return 'string'
+    if (ctor.includes(Number)) return 'number'
+    if (ctor.includes(Boolean)) return 'boolean'
+    if (ctor.includes(Object) || ctor.includes(Array)) return 'object'
+  }
   return 'unknown'
 }
 
@@ -42,6 +49,8 @@ interface PropDefinition {
   name: string
   type: 'string' | 'number' | 'boolean' | 'object' | 'unknown'
 }
+
+const extractedTypes = ${JSON.stringify(extractedPropTypes, null, 2)} as Record<string, PropDefinition['type']>
 
 const introspected = computed(() => {
   const comp = emailComponent.value as any
@@ -53,12 +62,13 @@ const introspected = computed(() => {
 
   if (Array.isArray(raw)) {
     for (const name of raw) {
-      defs.push({ name, type: 'unknown' })
+      defs.push({ name, type: extractedTypes[name] ?? 'unknown' })
     }
   } else {
     for (const [name, spec] of Object.entries(raw as Record<string, any>)) {
       const ctor = spec?.type ?? spec
-      defs.push({ name, type: inferType(ctor) })
+      const runtimeType = inferType(ctor)
+      defs.push({ name, type: runtimeType !== 'unknown' ? runtimeType : (extractedTypes[name] ?? 'unknown') })
 
       if (spec?.default !== undefined) {
         defaults[name] = typeof spec.default === 'function' ? spec.default() : spec.default

@@ -2,6 +2,7 @@ import { join } from 'pathe'
 import fs from 'node:fs'
 import type { NuxtPage } from '@nuxt/schema'
 import { generateWrapperComponent } from './generate-wrapper-component'
+import { extractPropsFromSFC } from './extract-props'
 
 export interface AddEmailPagesOptions {
   emailsDir: string
@@ -50,6 +51,10 @@ export function addEmailPages(
       const wrapperContent = generateWrapperComponent(
         options.emailTemplateComponentPath,
         fullPath,
+        extractPropsFromSFC(fullPath).props.reduce<Record<string, 'string' | 'number' | 'boolean' | 'object' | 'unknown'>>((acc, prop) => {
+          acc[prop.name] = prop.type
+          return acc
+        }, {}),
       )
 
       fs.writeFileSync(wrapperPath, wrapperContent, 'utf-8')
