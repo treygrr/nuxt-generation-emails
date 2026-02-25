@@ -93,7 +93,7 @@ declare module 'nitropack/types' {
     // as Handlebars partials. This lets email templates call registerMjmlComponents()
     // with no arguments — the glob path is baked in at build time.
     // Uses the ~ alias (resolves to srcDir) so Vite can resolve it from .nuxt/
-    const globPath = `~/${configuredEmailDir}/components/*.mjml`
+    const globPath = `~/${configuredEmailDir}/components/**/*.mjml`
 
     addTemplate({
       filename: 'nge/register-components.ts',
@@ -104,8 +104,16 @@ const componentFiles: Record<string, unknown> = import.meta.glob('${globPath}', 
 
 export function registerMjmlComponents(): void {
   for (const [path, source] of Object.entries(componentFiles)) {
-    const name = path.split('/').pop()!.replace('.mjml', '')
-    Handlebars.registerPartial(name, source as string)
+    const normalizedPath = path.split('?')[0] || path
+    const parts = normalizedPath.split('/')
+    const componentsIdx = parts.lastIndexOf('components')
+    const relativeParts = componentsIdx >= 0 ? parts.slice(componentsIdx + 1) : [parts[parts.length - 1]]
+    const relativeName = relativeParts.join('/').replace('.mjml', '')
+    const basename = relativeParts[relativeParts.length - 1]!.replace('.mjml', '')
+
+    Handlebars.registerPartial(relativeName, source as string)
+    // Backward compatibility: allow {{> Header}} for nested components.
+    Handlebars.registerPartial(basename, source as string)
   }
 }
 `,

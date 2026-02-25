@@ -11,9 +11,10 @@
   </mj-head>
 
   <mj-body background-color="#ffffff">
+    {{> RMIHeader }}
+
     <mj-section background-color="#ffffff" padding="0">
       <mj-column padding="24px 0 12px 0">
-        {{> RMIHeader }}
         {{> QuoteIcon }}
         <mj-text padding="0 0 16px 0" align="center" font-size="48px">
           R+MI Bid Created
@@ -168,6 +169,6 @@
       </mj-column>
     </mj-section>
 
-    {{> RMIFooter }}
+    {{> BaseFooter }}
   </mj-body>
 </mjml>

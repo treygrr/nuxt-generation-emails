@@ -5,7 +5,7 @@ export function generateApiRoute(emailName: string, emailPath: string, examplePa
 import { defineEventHandler, readBody, createError } from 'h3'
 import { useNitroApp, useRuntimeConfig } from '#imports'
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
-import { join, basename } from 'node:path'
+import { join, relative } from 'node:path'
 import mjml2html from 'mjml'
 import Handlebars from 'handlebars'
 
@@ -17,16 +17,31 @@ function registerMjmlPartials(emailsDir: string): void {
   const componentsDir = join(emailsDir, 'components')
   if (!existsSync(componentsDir)) return
 
-  {
-    const files = readdirSync(componentsDir)
+  const walk = (dir: string) => {
+    const entries = readdirSync(dir, { withFileTypes: true })
 
-    for (const file of files) {
-      if (!file.endsWith('.mjml')) continue
-      const partialName = basename(file, '.mjml')
-      const partialSource = readFileSync(join(componentsDir, file), 'utf-8')
+    for (const entry of entries) {
+      const fullPath = join(dir, entry.name)
+
+      if (entry.isDirectory()) {
+        walk(fullPath)
+        continue
+      }
+
+      if (!entry.name.endsWith('.mjml')) continue
+
+      const relativeName = relative(componentsDir, fullPath).replace(/\\\\/g, '/')
+      const partialName = relativeName.endsWith('.mjml') ? relativeName.slice(0, -5) : relativeName
+      const basename = entry.name.endsWith('.mjml') ? entry.name.slice(0, -5) : entry.name
+
+      const partialSource = readFileSync(fullPath, 'utf-8')
       Handlebars.registerPartial(partialName, partialSource)
+      // Backward compatibility: allow {{> Header}} for nested components.
+      Handlebars.registerPartial(basename, partialSource)
     }
   }
+
+  walk(componentsDir)
 }
 
 type SendData<TAdditional extends Record<string, unknown> = Record<string, unknown>> = {
