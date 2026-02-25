@@ -1,5 +1,5 @@
 {{#> BaseEmail title="R+MI Bid Created" }}
-  {{> RMIHeader }}
+  {{> Header }}
 
   <mj-wrapper
     border-left="1px solid #e5e7eb"

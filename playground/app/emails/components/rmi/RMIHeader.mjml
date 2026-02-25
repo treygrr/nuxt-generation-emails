@@ -1,5 +1,0 @@
-{{#if bannerData.banner}}
-  {{> (lookup bannerData "banner") }}
-{{else}}
-  {{> gexpro }}
-{{/if}}

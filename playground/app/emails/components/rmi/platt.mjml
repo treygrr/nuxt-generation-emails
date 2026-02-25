@@ -1,5 +1,0 @@
-<mj-section background-color="#003708" padding="0" css-class="rmi-header">
-  <mj-column width="100%">
-    <mj-image src="{{bannerData.logo.src}}" alt="header-{{bannerData.banner}}" align="center" border="none" width="150px" padding-left="0px" padding-right="0px" padding-bottom="20px" padding-top="20px"></mj-image>
-  </mj-column>
-</mj-section>
