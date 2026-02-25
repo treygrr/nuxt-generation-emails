@@ -1,37 +1,35 @@
-<mj-wrapper>
-    <mj-section background-color="#fff" padding="24px">
-        <mj-column width="100%" padding="0">
-            <mj-text color="#707070" align="center" padding="0">
-              <span>{{ bannerData.doNotReply }} </span>
-            </mj-text>
-        </mj-column>
-    </mj-section>
-    <mj-section padding="0 24px" background-color="#fff">
-        <mj-column width="100%" padding="0">
-        <mj-divider padding="0" border-width="1px" border-style="solid" border-color="black"/>
-        </mj-column>
-    </mj-section>
-    <mj-section background-color="#fff" padding="12px 24px 24px">
-        <mj-column padding="0">
-            <mj-table padding="0">
-                <tr>
-                <td style="text-align:center;">
-                    <a :href="items.siteUrl" target="_blank">{{ bannerData.siteName }}</a>
-                </td>
-                <td style="text-align:center;">
-                    <a :href="items.termsUrl" target="_blank">Terms</a>
-                </td>
-                <td style="text-align:center;">
-                    <a :href="items.privacyUrl" target="_blank">Privacy</a>
-                </td>
-                <td style="text-align:center;">
-                    <a :href="items.contactUsUrl" target="_blank">Contact Us</a>
-                </td>
-                <td style="text-align:center;">
-                    <a :href="items.mobileAppUrl" target="_blank">Download App</a>
-                </td>
-                </tr>
-            </mj-table>
-        </mj-column>
-    </mj-section>
-</mj-wrapper>
+<mj-section background-color="#fff" padding="24px">
+    <mj-column width="100%" padding="0">
+        <mj-text color="#707070" align="center" padding="0">
+          <span>{{ bannerData.doNotReply }} </span>
+        </mj-text>
+    </mj-column>
+</mj-section>
+<mj-section padding="0 24px" background-color="#fff">
+    <mj-column width="100%" padding="0">
+    <mj-divider padding="0" border-width="1px" border-style="solid" border-color="black"/>
+    </mj-column>
+</mj-section>
+<mj-section background-color="#fff" padding="12px 24px 24px">
+    <mj-column padding="0">
+        <mj-table padding="0">
+            <tr>
+            <td style="text-align:center;">
+                <a href="{{ bannerData.siteUrl }}" target="_blank">{{ bannerData.siteName }}</a>
+            </td>
+            <td style="text-align:center;">
+                <a href="{{ bannerData.termsUrl }}" target="_blank">Terms</a>
+            </td>
+            <td style="text-align:center;">
+                <a href="{{ bannerData.privacyUrl }}" target="_blank">Privacy</a>
+            </td>
+            <td style="text-align:center;">
+                <a href="{{ bannerData.contactUsUrl }}" target="_blank">Contact Us</a>
+            </td>
+            <td style="text-align:center;">
+                <a href="{{ bannerData.mobileAppUrl }}" target="_blank">Download App</a>
+            </td>
+            </tr>
+        </mj-table>
+    </mj-column>
+</mj-section>

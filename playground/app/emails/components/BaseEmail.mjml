@@ -1,5 +1,9 @@
 <mjml>
   <mj-head>
+    <mj-raw>
+      <meta name="color-scheme" content="light only">
+      <meta name="supported-color-schemes" content="light only">
+    </mj-raw>
     <mj-title>{{title}}</mj-title>
     <mj-font
       name="DM Sans"
@@ -8,6 +12,70 @@
     <mj-attributes>
       <mj-all font-family="'DM Sans', Arial, Helvetica, sans-serif" />
     </mj-attributes>
+    <mj-style>
+      :root {
+        color-scheme: light only;
+        supported-color-schemes: light only;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        .keep-light,
+        .keep-light div,
+        .keep-light p,
+        .keep-light span,
+        .keep-light td {
+          background-color: #ffffff !important;
+          background-image: linear-gradient(#ffffff, #ffffff) !important;
+          color: #212121 !important;
+        }
+
+        .keep-light a {
+          color: #0b57d0 !important;
+        }
+
+        .rmi-header,
+        .rmi-header div,
+        .rmi-header td {
+          background-color: #003b74 !important;
+          background-image: linear-gradient(#003b74, #003b74) !important;
+          color: #ffffff !important;
+        }
+      }
+
+      .keep-light,
+      .keep-light div,
+      .keep-light p,
+      .keep-light span,
+      .keep-light td {
+        background-color: #ffffff !important;
+        background-image: linear-gradient(#ffffff, #ffffff) !important;
+        color: #212121 !important;
+      }
+
+      [data-ogsc] .keep-light,
+      [data-ogsc] .keep-light div,
+      [data-ogsc] .keep-light p,
+      [data-ogsc] .keep-light span,
+      [data-ogsc] .keep-light td,
+      [data-ogsb] .keep-light,
+      [data-ogsb] .keep-light div,
+      [data-ogsb] .keep-light p,
+      [data-ogsb] .keep-light span,
+      [data-ogsb] .keep-light td {
+        background-color: #ffffff !important;
+        background-image: linear-gradient(#ffffff, #ffffff) !important;
+        color: #212121 !important;
+      }
+
+      [data-ogsc] .rmi-header td,
+      [data-ogsc] .rmi-header div,
+      [data-ogsb] .rmi-header td,
+      [data-ogsb] .rmi-header div {
+        background-color: #003b74 !important;
+        background-image: linear-gradient(#003b74, #003b74) !important;
+        color: #ffffff !important;
+      }
+    </mj-style>
   </mj-head>
 
   <mj-body background-color="#ffffff">

@@ -1,161 +1,169 @@
 {{#> BaseEmail title="R+MI Bid Created" }}
   {{> RMIHeader }}
 
-  <mj-section background-color="#ffffff" padding="0">
-    <mj-column padding="24px 0 12px 0">
-      {{> QuoteIcon }}
-      <mj-text padding="0 0 16px 0" align="center" font-size="48px">
-        R+MI Bid Created
-      </mj-text>
-      <mj-text
-        padding="0 12px 24px 12px"
-        align="center"
-        font-weight="400"
-        font-size="16px"
-      >
-        Your request has been submitted and a bid has been created.
-      </mj-text>
-      <mj-text
-        padding="0 0 4px 0"
-        align="center"
-        font-weight="400"
-        font-size="16px"
-        color="#666666"
-      >
-        Order Number:
-      </mj-text>
+  <mj-wrapper
+    border-left="1px solid #e5e7eb"
+    border-right="1px solid #e5e7eb"
+    border-bottom="1px solid #e5e7eb"
+    background-color="#ffffff"
+    padding="0"
+  >
+    <mj-section background-color="#ffffff" padding="0">
+      <mj-column padding="24px 0 12px 0">
+        {{> QuoteIcon }}
+        <mj-text padding="0 0 16px 0" align="center" font-size="48px">
+          R+MI Bid Created
+        </mj-text>
+        <mj-text
+          padding="0 12px 24px 12px"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+        >
+          Your request has been submitted and a bid has been created.
+        </mj-text>
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Order Number:
+        </mj-text>
 
-      <mj-text
-        padding="0 0 16px 0"
-        align="center"
-        font-weight="500"
-        font-size="18px"
-        color="#212121"
-      >
-        {{ orderNumber }}
-      </mj-text>
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ orderNumber }}
+        </mj-text>
 
-      <mj-text
-        padding="0 0 4px 0"
-        align="center"
-        font-weight="400"
-        font-size="16px"
-        color="#666666"
-      >
-        Site Name:
-      </mj-text>
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Site Name:
+        </mj-text>
 
-      <mj-text
-        padding="0 0 16px 0"
-        align="center"
-        font-weight="500"
-        font-size="18px"
-        color="#212121"
-      >
-        {{ siteName }}
-      </mj-text>
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ siteName }}
+        </mj-text>
 
-      <mj-text
-        padding="0 0 4px 0"
-        align="center"
-        font-weight="400"
-        font-size="16px"
-        color="#666666"
-      >
-        Purchase Order Number:
-      </mj-text>
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Purchase Order Number:
+        </mj-text>
 
-      <mj-text
-        padding="0 0 16px 0"
-        align="center"
-        font-weight="500"
-        font-size="18px"
-        color="#212121"
-      >
-        {{ purchaseOrderNumber }}
-      </mj-text>
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ purchaseOrderNumber }}
+        </mj-text>
 
-      <mj-text
-        padding="0 0 4px 0"
-        align="center"
-        font-weight="400"
-        font-size="16px"
-        color="#666666"
-      >
-        Customer Account Name:
-      </mj-text>
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Customer Account Name:
+        </mj-text>
 
-      <mj-text
-        padding="0 0 16px 0"
-        align="center"
-        font-weight="500"
-        font-size="18px"
-        color="#212121"
-      >
-        {{ customerAccountName }}
-      </mj-text>
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ customerAccountName }}
+        </mj-text>
 
-      <mj-text
-        padding="0 0 4px 0"
-        align="center"
-        font-weight="400"
-        font-size="16px"
-        color="#666666"
-      >
-        Requesters Name:
-      </mj-text>
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Requesters Name:
+        </mj-text>
 
-      <mj-text
-        padding="0 0 16px 0"
-        align="center"
-        font-weight="500"
-        font-size="18px"
-        color="#212121"
-      >
-        {{ requestersName }}
-      </mj-text>
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ requestersName }}
+        </mj-text>
 
-      <mj-text
-        padding="0 0 4px 0"
-        align="center"
-        font-weight="400"
-        font-size="16px"
-        color="#666666"
-      >
-        Requesters Email:
-      </mj-text>
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Requesters Email:
+        </mj-text>
 
-      <mj-text
-        padding="0 0 16px 0"
-        align="center"
-        font-weight="500"
-        font-size="18px"
-        color="#212121"
-      >
-        {{ requestersEmail }}
-      </mj-text>
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ requestersEmail }}
+        </mj-text>
 
-      <mj-text
-        padding="0 0 4px 0"
-        align="center"
-        font-weight="400"
-        font-size="16px"
-        color="#666666"
-      >
-        Order Instructions:
-      </mj-text>
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Order Instructions:
+        </mj-text>
 
-      <mj-text
-        padding="0 0 16px 0"
-        align="center"
-        font-weight="500"
-        font-size="18px"
-        color="#212121"
-      >
-        {{ orderInstructions }}
-      </mj-text>
-    </mj-column>
-  </mj-section>
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ orderInstructions }}
+        </mj-text>
+      </mj-column>
+    </mj-section>
 
-  {{> BaseFooter }}
+    {{> BaseFooter }}
+  </mj-wrapper>
 {{/BaseEmail}}

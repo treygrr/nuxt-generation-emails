@@ -22,6 +22,7 @@ declare global {
     siteUrl: string
     siteName: string
     contactUsUrl: string
+    banner: string
     privacyUrl: string
     termsUrl: string
     mobileAppUrl: string

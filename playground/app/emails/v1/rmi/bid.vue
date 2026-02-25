@@ -4,7 +4,6 @@ defineOptions({ name: 'ExampleNge' })
 const props = withDefaults(defineProps<{
   previewText?: string
   message?: string
-  banner?: string
   orderNumber?: string
   purchaseOrderNumber?: string
   customerAccountNumber?: string
@@ -17,7 +16,6 @@ const props = withDefaults(defineProps<{
 }>(), {
   previewText: 'R+MI bid created',
   message: 'Your request has been submitted and a bid has been created.',
-  banner: 'rexel',
   orderNumber: 'S123456789',
   purchaseOrderNumber: '542642-87563',
   customerAccountNumber: '1432393/1432404',
@@ -30,11 +28,12 @@ const props = withDefaults(defineProps<{
     bannerName: 'Rexel USA',
     siteUrl: 'https://rexelusa.com',
     siteName: 'Rexelusa.com',
+    banner: 'rexel',
     contactUsUrl: 'https://rexelusa.com/contact-us',
     privacyUrl: 'https://sf.rexel-cdn.com/web/terms/Privacy_Policy.pdf',
     termsUrl: 'https://rexelusa.com/terms',
     mobileAppUrl: 'https://www.rexelusa.com/mobileapps',
-    callMessage: "Have a question - we're here to help! Rexel Team phone support at 1-888-739-3577 or visit our contact page",
+    callMessage: 'Have a question - we\'re here to help! Rexel Team phone support at 1-888-739-3577 or visit our contact page',
     contactPhone: '1-888-739-3577',
     contactEmail: 'contact@rexel.com',
     doNotReply: 'This message was sent from a notification-only email address that does not accept incoming email. Please do not reply to this message.',
