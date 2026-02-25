@@ -1,18 +1,173 @@
 <mjml>
   <mj-head>
-    <mj-font name="DM Sans" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" />
+    <mj-title>R+MI Bid Created</mj-title>
+    <mj-font
+      name="DM Sans"
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap"
+    />
     <mj-attributes>
       <mj-all font-family="'DM Sans', Arial, Helvetica, sans-serif" />
     </mj-attributes>
   </mj-head>
-  <mj-body>
-    <mj-section>
-      <mj-column>
-        <mj-text font-size="20px" font-weight="600">{{title}}</mj-text>
-        <mj-text>{{message}}</mj-text>
-        <mj-divider border-color="#cccccc" />
-        <mj-button href="https://example.com">Click me</mj-button>
+
+  <mj-body background-color="#ffffff">
+    <mj-section background-color="#ffffff" padding="0">
+      <mj-column padding="24px 0 12px 0">
+        {{> RMIHeader }}
+        {{> QuoteIcon }}
+        <mj-text padding="0 0 16px 0" align="center" font-size="48px">
+          R+MI Bid Created
+        </mj-text>
+        <mj-text
+          padding="0 12px 24px 12px"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+        >
+          Your request has been submitted and a bid has been created.
+        </mj-text>
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Order Number:
+        </mj-text>
+
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ orderNumber }}
+        </mj-text>
+
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Site Name:
+        </mj-text>
+
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ siteName }}
+        </mj-text>
+
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Purchase Order Number:
+        </mj-text>
+
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ purchaseOrderNumber }}
+        </mj-text>
+
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Customer Account Name:
+        </mj-text>
+
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ customerAccountName }}
+        </mj-text>
+
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Requesters Name:
+        </mj-text>
+
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ requestersName }}
+        </mj-text>
+
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Requesters Email:
+        </mj-text>
+
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ requestersEmail }}
+        </mj-text>
+
+        <mj-text
+          padding="0 0 4px 0"
+          align="center"
+          font-weight="400"
+          font-size="16px"
+          color="#666666"
+        >
+          Order Instructions:
+        </mj-text>
+
+        <mj-text
+          padding="0 0 16px 0"
+          align="center"
+          font-weight="500"
+          font-size="18px"
+          color="#212121"
+        >
+          {{ orderInstructions }}
+        </mj-text>
       </mj-column>
     </mj-section>
+
+    {{> RMIFooter }}
   </mj-body>
 </mjml>

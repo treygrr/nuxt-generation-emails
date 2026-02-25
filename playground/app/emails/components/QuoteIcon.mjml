@@ -1,0 +1,8 @@
+{{#if banner}}
+<mj-image
+  padding="0 0 12px 0"
+  width="64px"
+  src="https://sf.rexel-cdn.com/images/common/icons/email-quote-{{banner}}.png"
+>
+</mj-image>
+{{/if}}

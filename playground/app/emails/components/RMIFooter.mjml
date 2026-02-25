@@ -1,0 +1,30 @@
+<mj-section background-color="white" padding-bottom="25px" padding-top="12px">
+
+  <mj-column width="100%">
+    {{#each bannerData.footerMessages}}
+    {{#if text}}
+    <mj-text
+      align="left"
+      color="black"
+      font-size="15px"
+      font-family="Helvetica"
+      padding="4px 24px"
+    >
+      {{text}}
+    </mj-text>
+    {{else}}
+    {{#if html}}
+    <mj-text
+      align="left"
+      color="black"
+      font-size="15px"
+      font-family="Helvetica"
+      padding="4px 24px"
+    >
+      {{{html}}}
+    </mj-text>
+    {{/if}}
+    {{/if}}
+    {{/each}}
+  </mj-column>
+</mj-section>
