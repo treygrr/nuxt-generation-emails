@@ -48,6 +48,7 @@ async function testApi() {
       body: {
         templateData: props.dataObject,
         sendData: {},
+        stopSend: true,
       },
     })
 
@@ -84,6 +85,7 @@ async function sendTestEmail() {
       to: lastUsedEmail.value,
       subject: `Test email ${Date.now()}`,
     },
+    stopSend: false,
   }
 
   isLoading.value = true

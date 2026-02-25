@@ -41,6 +41,7 @@ type NuxtGenEmailsApiBody<
 > = {
   templateData: TTemplateData
   sendData: TSendData
+  stopSend?: boolean
 }
 
 defineRouteMeta({
@@ -71,6 +72,11 @@ defineRouteMeta({
                   from: { type: 'string', example: 'test@example.com' },
                   subject: { type: 'string', example: 'Sending with Twilio SendGrid is Fun' },
                 },
+              },
+              stopSend: {
+                type: 'boolean',
+                description: 'When true, render the template but skip the send hook.',
+                example: true,
               },
             },
             required: ['templateData', 'sendData'],
@@ -119,6 +125,7 @@ export default defineEventHandler(async (event) => {
 
   const templateData = body?.templateData ?? {}
   const sendData = body?.sendData ?? {}
+  const stopSend = body?.stopSend === true
 
   try {
     const { emailsDir } = useRuntimeConfig().nuxtGenEmails as { emailsDir: string }
@@ -132,9 +139,11 @@ export default defineEventHandler(async (event) => {
       throw new Error('MJML compilation errors: ' + errors.map(e => e.formattedMessage).join('; '))
     }
 
-    const nitro = useNitroApp()
-    // @ts-ignore - custom hook
-    await nitro.hooks.callHook('nuxt-generation-emails:send', { html, data: sendData })
+    if (!stopSend) {
+      const nitro = useNitroApp()
+      // @ts-ignore - custom hook
+      await nitro.hooks.callHook('nuxt-generation-emails:send', { html, data: sendData })
+    }
 
     return { success: true, message: 'Email rendered successfully', html }
   }
