@@ -164,6 +164,6 @@
       </mj-column>
     </mj-section>
 
-    {{> BaseFooter }}
+    {{> RMIFooter }}
   </mj-wrapper>
 {{/BaseEmail}}
