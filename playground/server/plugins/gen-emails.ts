@@ -15,18 +15,12 @@ export default defineNitroPlugin((nitro) => {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY!)
 
   nitro.hooks.hook('nuxt-generation-emails:send', async ({ html, data }: NuxtGenEmailsSendPayload) => {
-    console.log('[gen-emails] Sending email to:', data.to)
-    console.log('[gen-emails] Subject:', data.subject || 'No Subject')
-    console.log('[gen-emails] HTML length:', html.length)
-
     const msg = {
       to: data.to as string,
       from: (data.from as string) || 'webdevtesters@platt.com',
       subject: (data.subject as string) || 'No Subject',
       html,
     }
-
-    console.log('[gen-emails] Email message object:', msg)
 
     try {
       const [response] = await sgMail.send(msg)
