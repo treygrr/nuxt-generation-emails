@@ -104,8 +104,21 @@ function toggleDirectory(path: string) {
   }
 }
 
+function expandToCurrentTemplate() {
+  const current = currentTemplate.value
+  if (!current || current === 'Select a template') return
+  const parts = current.split('/')
+  // Expand every ancestor directory of the current template
+  for (let i = 1; i < parts.length; i++) {
+    expandedDirs.value.add(parts.slice(0, i).join('/'))
+  }
+}
+
 function toggleDropdown() {
   isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    expandToCurrentTemplate()
+  }
 }
 
 function handleClickOutside(event: MouseEvent) {
