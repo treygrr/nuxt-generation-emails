@@ -1,6 +1,21 @@
 import fs from 'node:fs'
 import { parse as parseSFC, compileScript } from 'vue/compiler-sfc'
 
+/**
+ * Extract the MJML template name from a Vue SFC's useNgeTemplate() call.
+ *
+ * Looks for `useNgeTemplate('templateName', ...)` in the <script setup> block
+ * and returns the first string argument (the template name).
+ *
+ * @returns The template name string, or null if not found.
+ */
+export function extractMjmlTemplateName(filePath: string): string | null {
+  const source = fs.readFileSync(filePath, 'utf-8')
+  // Match useNgeTemplate('name' or useNgeTemplate("name"
+  const match = source.match(/useNgeTemplate\(\s*['"]([^'"]+)['"]\s*[,)]/)
+  return match ? match[1] ?? null : null
+}
+
 export interface ExtractedProp {
   name: string
   type: 'string' | 'number' | 'boolean' | 'object' | 'unknown'

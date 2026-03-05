@@ -130,16 +130,21 @@ function createEmailFiles(
   const mjmlFile = join(targetDir, `${emailName}.mjml`)
 
   checkFileExists(vueFile)
-  checkFileExists(mjmlFile)
 
   const vueTemplate = generateVueTemplate(emailName, emailPath)
-  const mjmlTemplate = generateMjmlTemplate(emailName)
-
   writeFileSync(vueFile, vueTemplate, 'utf-8')
   consola.success(`Created email template: ${vueFile}`)
 
-  writeFileSync(mjmlFile, mjmlTemplate, 'utf-8')
-  consola.success(`Created MJML template: ${mjmlFile}`)
+  // Only create the MJML file if it doesn't already exist (multiple Vue files
+  // can share a single MJML template)
+  if (!existsSync(mjmlFile)) {
+    const mjmlTemplate = generateMjmlTemplate(emailName)
+    writeFileSync(mjmlFile, mjmlTemplate, 'utf-8')
+    consola.success(`Created MJML template: ${mjmlFile}`)
+  }
+  else {
+    consola.info(`MJML template already exists: ${mjmlFile} — skipping`)
+  }
 
   return {
     emailPath,

@@ -1,7 +1,7 @@
 import { join } from 'pathe'
 import fs from 'node:fs'
 import { generateApiRoute } from '../cli/utils/generate-api-route'
-import { extractPropsFromSFC } from './extract-props'
+import { extractPropsFromSFC, extractMjmlTemplateName } from './extract-props'
 
 /**
  * Recursively sanitise string values so that the JSON blob we embed inside
@@ -89,10 +89,17 @@ export function generateServerRoutes(
         const emailName = entry.replace('.vue', '')
         const emailPath = `${routePrefix}/${emailName}`.replace(/^\//, '')
 
-        // Verify co-located .mjml file exists
-        const mjmlPath = join(dirPath, `${emailName}.mjml`)
+        // Extract the MJML template name from the useNgeTemplate() call
+        const mjmlTemplateName = extractMjmlTemplateName(fullPath)
+        if (!mjmlTemplateName) {
+          console.warn(`[nuxt-generation-emails] Could not find useNgeTemplate() call in ${emailName}.vue — skipping API route.`)
+          continue
+        }
+
+        // Verify the referenced .mjml file exists somewhere in the emails directory
+        const mjmlPath = join(emailsDir, `${mjmlTemplateName}.mjml`)
         if (!fs.existsSync(mjmlPath)) {
-          console.warn(`[nuxt-generation-emails] Missing co-located MJML file for ${emailName}.vue — skipping API route. Expected: ${mjmlPath}`)
+          console.warn(`[nuxt-generation-emails] MJML template "${mjmlTemplateName}.mjml" referenced by ${emailName}.vue not found — skipping API route. Expected: ${mjmlPath}`)
           continue
         }
 
@@ -113,7 +120,7 @@ export function generateServerRoutes(
 
         const handlerFileName = `${emailName}.ts`
         const handlerFilePath = join(handlerDir, handlerFileName)
-        const handlerContent = generateApiRoute(emailName, emailPath, examplePayload)
+        const handlerContent = generateApiRoute(emailName, emailPath, examplePayload, mjmlTemplateName)
 
         fs.writeFileSync(handlerFilePath, handlerContent, 'utf-8')
         console.log(`[nuxt-generation-emails] Generated API handler: ${handlerFilePath}`)
