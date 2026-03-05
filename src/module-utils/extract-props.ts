@@ -243,43 +243,210 @@ function evaluateAstExpression(node: AstNode): unknown {
 }
 
 /**
- * Parse the type parameter of `defineProps<{ ... }>()` to extract prop names and
- * their TypeScript types, mapping them to the simplified ExtractedProp type set.
+ * Parse the type parameter of `defineProps<{ ... }>()` or `defineProps<TypeName>()`
+ * to extract prop names and their TypeScript types, mapping them to the simplified
+ * ExtractedProp type set.
+ *
+ * Handles:
+ *  - Inline object type: `defineProps<{ name: string; age?: number }>()`
+ *  - Named type/interface: `defineProps<MyProps>()` (resolves from same script block)
+ *  - Complex types: union (`string | null`), array (`string[]`), generics (`Array<string>`)
+ *  - Nested object types: `{ data: { nested: string } }`
  */
 function extractPropTypesFromSource(scriptContent: string): Record<string, ExtractedProp['type']> {
   const result: Record<string, ExtractedProp['type']> = {}
 
-  // Match the type parameter inside defineProps<{ ... }>()
-  const match = scriptContent.match(/defineProps\s*<\s*\{([\s\S]*?)\}\s*>\s*\(/)
-  if (!match) return result
+  // Try inline object type: defineProps<{ ... }>()
+  let typeBody = extractInlineTypeBody(scriptContent)
 
-  const typeBody = match[1] as string
+  // If no inline type body, try resolving a named type reference
+  if (!typeBody) {
+    typeBody = resolveNamedTypeBody(scriptContent)
+  }
 
-  // Match lines like:  propName: string   or   propName?: number
-  const propPattern = /(\w+)\s*(?:\?\s*)?:\s*(\w+)/g
-  let propMatch: RegExpExecArray | null
+  if (!typeBody) return result
 
-  while ((propMatch = propPattern.exec(typeBody)) !== null) {
-    const name = propMatch[1] as string
-    const tsType = propMatch[2] as string
+  // Parse prop entries from the type body, handling complex types
+  parsePropEntries(typeBody, result)
 
-    switch (tsType.toLowerCase()) {
-      case 'string':
-        result[name] = 'string'
-        break
-      case 'number':
-        result[name] = 'number'
-        break
-      case 'boolean':
-        result[name] = 'boolean'
-        break
-      default:
-        result[name] = 'object'
-        break
+  return result
+}
+
+/**
+ * Extract the type body from an inline `defineProps<{ ... }>()`.
+ * Uses balanced-brace matching to handle nested object types.
+ */
+function extractInlineTypeBody(scriptContent: string): string | null {
+  // Find defineProps< and then locate the opening brace
+  const definePropsMatch = scriptContent.match(/defineProps\s*<\s*\{/)
+  if (!definePropsMatch || definePropsMatch.index === undefined) return null
+
+  const braceStart = scriptContent.indexOf('{', definePropsMatch.index + 'defineProps'.length)
+  if (braceStart === -1) return null
+
+  // Balanced-brace matching to find the closing }
+  let depth = 1
+  let i = braceStart + 1
+  while (i < scriptContent.length && depth > 0) {
+    const ch = scriptContent[i]!
+    if (ch === '{') depth++
+    else if (ch === '}') depth--
+    if (depth > 0) i++
+  }
+
+  if (depth !== 0) return null
+  return scriptContent.slice(braceStart + 1, i)
+}
+
+/**
+ * Resolve a named type reference from `defineProps<TypeName>()` by finding
+ * the corresponding `interface TypeName { ... }` or `type TypeName = { ... }`
+ * declaration in the same script block.
+ */
+function resolveNamedTypeBody(scriptContent: string): string | null {
+  // Match defineProps<SomeIdentifier>() — the type name is a simple identifier (no braces)
+  const namedMatch = scriptContent.match(/defineProps\s*<\s*(\w+)\s*>\s*\(/)
+  if (!namedMatch) return null
+
+  const typeName = namedMatch[1] as string
+
+  // Try interface declaration: interface TypeName { ... }
+  const interfacePattern = new RegExp(`interface\\s+${typeName}\\s*\\{`)
+  const interfaceMatch = interfacePattern.exec(scriptContent)
+  if (interfaceMatch && interfaceMatch.index !== undefined) {
+    const braceStart = scriptContent.indexOf('{', interfaceMatch.index)
+    if (braceStart !== -1) {
+      return extractBalancedBraceContent(scriptContent, braceStart)
     }
   }
 
-  return result
+  // Try type alias: type TypeName = { ... }
+  const typeAliasPattern = new RegExp(`type\\s+${typeName}\\s*=\\s*\\{`)
+  const typeAliasMatch = typeAliasPattern.exec(scriptContent)
+  if (typeAliasMatch && typeAliasMatch.index !== undefined) {
+    const braceStart = scriptContent.indexOf('{', typeAliasMatch.index)
+    if (braceStart !== -1) {
+      return extractBalancedBraceContent(scriptContent, braceStart)
+    }
+  }
+
+  return null
+}
+
+/**
+ * Extract content between balanced braces starting at the given position.
+ * Returns the content inside the braces (excluding the outer braces).
+ */
+function extractBalancedBraceContent(source: string, braceStart: number): string | null {
+  let depth = 1
+  let i = braceStart + 1
+  while (i < source.length && depth > 0) {
+    const ch = source[i]!
+    if (ch === '{') depth++
+    else if (ch === '}') depth--
+    if (depth > 0) i++
+  }
+  if (depth !== 0) return null
+  return source.slice(braceStart + 1, i)
+}
+
+/**
+ * Map a full TypeScript type string to the simplified ExtractedProp type.
+ * Handles union types, array types, and generics.
+ */
+function classifyTsType(tsType: string): ExtractedProp['type'] {
+  const trimmed = tsType.trim()
+
+  // Union type: split by | and check each member
+  if (trimmed.includes('|')) {
+    const members = trimmed.split('|').map(m => m.trim()).filter(m => m !== 'null' && m !== 'undefined')
+    if (members.length === 1) return classifyTsType(members[0]!)
+    // If all remaining members are the same base type, return that
+    const types = new Set(members.map(m => classifyTsType(m)))
+    if (types.size === 1) return types.values().next().value as ExtractedProp['type']
+    return 'object'
+  }
+
+  // Array types: string[], Array<string>, etc.
+  if (trimmed.endsWith('[]') || /^Array\s*</.test(trimmed) || /^ReadonlyArray\s*</.test(trimmed)) {
+    return 'object'
+  }
+
+  // Generic types like Record<K, V>, Map<K,V>, Set<V>, etc.
+  if (/^\w+\s*</.test(trimmed)) {
+    return 'object'
+  }
+
+  // Simple types
+  switch (trimmed.toLowerCase()) {
+    case 'string':
+      return 'string'
+    case 'number':
+      return 'number'
+    case 'boolean':
+      return 'boolean'
+    default:
+      return 'object'
+  }
+}
+
+/**
+ * Parse prop entries from a type body string (the content inside `{ ... }`).
+ * Handles complex TypeScript types by using balanced-delimiter matching for
+ * each property's type annotation instead of simple regex.
+ */
+function parsePropEntries(typeBody: string, result: Record<string, ExtractedProp['type']>): void {
+  // Remove single-line and multi-line comments
+  const cleaned = typeBody
+    .replace(/\/\/[^\n]*/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+
+  let i = 0
+  while (i < cleaned.length) {
+    // Skip whitespace
+    while (i < cleaned.length && /\s/.test(cleaned[i]!)) i++
+    if (i >= cleaned.length) break
+
+    // Try to match a property name followed by optional ? and :
+    const propNameMatch = cleaned.slice(i).match(/^(\w+)\s*(\?)?\s*:/)
+    if (!propNameMatch) {
+      // Skip past the next ; or end of string
+      const next = cleaned.indexOf(';', i)
+      if (next === -1) break
+      i = next + 1
+      continue
+    }
+
+    const propName = propNameMatch[1] as string
+    i += propNameMatch[0].length
+
+    // Now extract the type — everything until the next unbalanced ; or end,
+    // respecting nested <>, {}, [], ()
+    const typeStart = i
+    let depth = 0
+    while (i < cleaned.length) {
+      const ch = cleaned[i]!
+      if (ch === '<' || ch === '{' || ch === '[' || ch === '(') {
+        depth++
+      }
+      else if (ch === '>' || ch === '}' || ch === ']' || ch === ')') {
+        if (depth > 0) depth--
+        else break // unbalanced closing delimiter = end of type body
+      }
+      else if ((ch === ';' || ch === '\n') && depth === 0) {
+        break
+      }
+      i++
+    }
+
+    const typeText = cleaned.slice(typeStart, i).trim()
+    if (typeText) {
+      result[propName] = classifyTsType(typeText)
+    }
+
+    // Skip past the delimiter
+    if (i < cleaned.length && (cleaned[i] === ';' || cleaned[i] === '\n')) i++
+  }
 }
 
 /**
