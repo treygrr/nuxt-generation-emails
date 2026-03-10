@@ -46,13 +46,22 @@ export interface ServerHandlerInfo {
   handlerPath: string
 }
 
-function normalizeApiEmailPath(routePrefix: string, emailName: string): string {
+function normalizeApiEmailPath(emailsDir: string, routePrefix: string, emailName: string): string {
   const rawPath = `${routePrefix}/${emailName}`.replace(/^\//, '')
 
   // Match file-system index route semantics for nested templates:
   // v1/order/index.vue => /api/emails/v1/order
   if (emailName === 'index' && routePrefix) {
-    return routePrefix.replace(/^\//, '')
+    const indexlessPath = routePrefix.replace(/^\//, '')
+    const siblingTemplatePath = join(emailsDir, `${indexlessPath}.vue`)
+
+    // If both foo.vue and foo/index.vue exist, keep /index for the nested
+    // template to avoid duplicate route registration and broken OpenAPI output.
+    if (fs.existsSync(siblingTemplatePath)) {
+      return rawPath
+    }
+
+    return indexlessPath
   }
 
   return rawPath
@@ -99,7 +108,7 @@ export function generateServerRoutes(
       }
       else if (entry.endsWith('.vue')) {
         const emailName = entry.replace('.vue', '')
-        const emailPath = normalizeApiEmailPath(routePrefix, emailName)
+        const emailPath = normalizeApiEmailPath(emailsDir, routePrefix, emailName)
 
         // Extract the MJML template name from the useNgeTemplate() call
         const mjmlTemplateName = extractMjmlTemplateName(fullPath)
@@ -126,8 +135,11 @@ export function generateServerRoutes(
         // Extract prop defaults from the SFC for the OpenAPI example payload
         const { defaults } = extractPropsFromSFC(fullPath)
         const sanitized = sanitizeForOpenApi(defaults)
-        const examplePayload = Object.keys(sanitized).length > 0
-          ? JSON.stringify(sanitized, null, 2)
+        const sanitizedDefaults = sanitized && typeof sanitized === 'object' && !Array.isArray(sanitized)
+          ? sanitized as Record<string, unknown>
+          : {}
+        const examplePayload = Object.keys(sanitizedDefaults).length > 0
+          ? JSON.stringify(sanitizedDefaults, null, 2)
           : '{}'
 
         const handlerFileName = `${emailName}.ts`

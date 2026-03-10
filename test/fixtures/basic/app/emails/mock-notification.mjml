@@ -1,0 +1,20 @@
+<mjml>
+  <mj-head>
+    <mj-preview>{{previewText}}</mj-preview>
+  </mj-head>
+  <mj-body background-color="#f5f7fb">
+    <mj-section background-color="#ffffff" padding="24px">
+      <mj-column>
+        <mj-text font-size="20px" font-weight="700" color="#1f2937">
+          {{heading}}
+        </mj-text>
+        <mj-text font-size="14px" color="#4b5563" line-height="1.6">
+          {{message}}
+        </mj-text>
+        <mj-button href="{{ctaUrl}}" background-color="#111827" color="#ffffff" border-radius="4px">
+          {{ctaText}}
+        </mj-button>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

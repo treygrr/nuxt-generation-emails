@@ -59,22 +59,22 @@ describe('generateServerRoutes', () => {
   it('drops trailing /index for nested index.vue API routes', () => {
     const { emailsDir, buildDir } = createTempDirs()
 
-    writeEmailTemplatePair(emailsDir, 'v1/OrderConfirmation/platt/index')
+    writeEmailTemplatePair(emailsDir, 'v1/notifications/sample/index')
 
     const handlers = generateServerRoutes(emailsDir, buildDir)
 
-    expect(handlers.some(h => h.route === '/api/emails/v1/OrderConfirmation/platt')).toBe(true)
-    expect(handlers.some(h => h.route === '/api/emails/v1/OrderConfirmation/platt/index')).toBe(false)
+    expect(handlers.some(h => h.route === '/api/emails/v1/notifications/sample')).toBe(true)
+    expect(handlers.some(h => h.route === '/api/emails/v1/notifications/sample/index')).toBe(false)
   })
 
   it('keeps current behavior for non-index templates', () => {
     const { emailsDir, buildDir } = createTempDirs()
 
-    writeEmailTemplatePair(emailsDir, 'v1/OrderConfirmation/platt/receipt')
+    writeEmailTemplatePair(emailsDir, 'v1/notifications/sample/receipt')
 
     const handlers = generateServerRoutes(emailsDir, buildDir)
 
-    expect(handlers.some(h => h.route === '/api/emails/v1/OrderConfirmation/platt/receipt')).toBe(true)
+    expect(handlers.some(h => h.route === '/api/emails/v1/notifications/sample/receipt')).toBe(true)
   })
 
   it('keeps root index.vue mapped to /index', () => {
@@ -85,5 +85,19 @@ describe('generateServerRoutes', () => {
     const handlers = generateServerRoutes(emailsDir, buildDir)
 
     expect(handlers.some(h => h.route === '/api/emails/index')).toBe(true)
+  })
+
+  it('keeps /index when sibling template route would collide', () => {
+    const { emailsDir, buildDir } = createTempDirs()
+
+    writeEmailTemplatePair(emailsDir, 'v1/notifications/sample')
+    writeEmailTemplatePair(emailsDir, 'v1/notifications/sample/index')
+
+    const handlers = generateServerRoutes(emailsDir, buildDir)
+
+    expect(handlers.some(h => h.route === '/api/emails/v1/notifications/sample')).toBe(true)
+    expect(handlers.some(h => h.route === '/api/emails/v1/notifications/sample/index')).toBe(true)
+    expect(handlers.filter(h => h.route === '/api/emails/v1/notifications/sample')).toHaveLength(1)
+    expect(handlers.filter(h => h.route === '/api/emails/v1/notifications/sample/index')).toHaveLength(1)
   })
 })

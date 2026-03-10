@@ -288,6 +288,8 @@ The `components/` directory is reserved — it is skipped during route generatio
 
 For API endpoints, nested `index.vue` files are treated as directory index routes, so the trailing `/index` is removed. Root-level `emails/index.vue` keeps the existing endpoint: `POST /api/emails/index`.
 
+If both `emails/foo.vue` and `emails/foo/index.vue` exist, the nested file keeps `POST /api/emails/foo/index` to avoid route collisions and preserve OpenAPI examples/schema for both handlers.
+
 ---
 
 ## Sending Emails
