@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRoute, useCookie } from '#imports'
+import { useRoute, useCookie, useRouter } from '#imports'
+import { resolveApiEndpointFromPreviewPath } from '../utils/email-route'
 
 const props = defineProps<{
   dataObject: Record<string, unknown>
 }>()
 
 const route = useRoute()
+const router = useRouter()
 const isLoading = ref(false)
 const response = ref<string>('')
 const responseData = ref<unknown>(null)
@@ -22,8 +24,11 @@ const sendStatus = ref<'idle' | 'sending' | 'success' | 'error'>('idle')
 let sendStatusTimeout: ReturnType<typeof setTimeout> | null = null
 
 const apiEndpoint = computed(() => {
-  const templatePath = route.path.replace('/__emails/', '')
-  return `/api/emails/${templatePath}`
+  const availablePreviewPaths = router.getRoutes()
+    .filter(route => route.path.startsWith('/__emails/'))
+    .map(route => route.path)
+
+  return resolveApiEndpointFromPreviewPath(route.path, availablePreviewPaths)
 })
 
 const htmlResponse = computed(() => {
