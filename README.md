@@ -284,6 +284,9 @@ The `components/` directory is reserved — it is skipped during route generatio
 |----------------------------|-------------------------------|-------------------------------|
 | `emails/welcome.vue`      | `/__emails/welcome`           | `POST /api/emails/welcome`    |
 | `emails/v1/order.vue`     | `/__emails/v1/order`          | `POST /api/emails/v1/order`   |
+| `emails/v1/order/index.vue` | `/__emails/v1/order/index`  | `POST /api/emails/v1/order`   |
+
+For API endpoints, nested `index.vue` files are treated as directory index routes, so the trailing `/index` is removed. Root-level `emails/index.vue` keeps the existing endpoint: `POST /api/emails/index`.
 
 ---
 

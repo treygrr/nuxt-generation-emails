@@ -46,6 +46,18 @@ export interface ServerHandlerInfo {
   handlerPath: string
 }
 
+function normalizeApiEmailPath(routePrefix: string, emailName: string): string {
+  const rawPath = `${routePrefix}/${emailName}`.replace(/^\//, '')
+
+  // Match file-system index route semantics for nested templates:
+  // v1/order/index.vue => /api/emails/v1/order
+  if (emailName === 'index' && routePrefix) {
+    return routePrefix.replace(/^\//, '')
+  }
+
+  return rawPath
+}
+
 /**
  * Generate server route handlers for all email templates in a directory.
  * Handlers are written to the build directory and returned for registration
@@ -87,7 +99,7 @@ export function generateServerRoutes(
       }
       else if (entry.endsWith('.vue')) {
         const emailName = entry.replace('.vue', '')
-        const emailPath = `${routePrefix}/${emailName}`.replace(/^\//, '')
+        const emailPath = normalizeApiEmailPath(routePrefix, emailName)
 
         // Extract the MJML template name from the useNgeTemplate() call
         const mjmlTemplateName = extractMjmlTemplateName(fullPath)
