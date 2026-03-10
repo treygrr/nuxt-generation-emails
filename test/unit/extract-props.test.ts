@@ -228,4 +228,59 @@ describe('extractPropsFromSFC', () => {
       expect(['string', 'unknown']).toContain(p.type)
     }
   })
+
+  it('resolves imported const member defaults in withDefaults', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'nge-test-'))
+    const defaultsFile = path.join(tmpDir, 'defaults.ts')
+    const sfcFile = path.join(tmpDir, 'ImportedDefaults.vue')
+
+    fs.writeFileSync(defaultsFile, `
+export const MESSAGE_DEFAULTS = {
+  previewText: 'Imported preview',
+  message: 'Imported message body',
+  buttonUrl: 'https://example.com/imported',
+  buttonText: 'Imported CTA',
+}
+`, 'utf-8')
+
+    fs.writeFileSync(sfcFile, `<script setup lang="ts">
+import { MESSAGE_DEFAULTS } from './defaults'
+
+const props = withDefaults(defineProps<{
+  previewText?: string
+  message?: string
+  buttonUrl?: string
+  buttonText?: string
+}>(), {
+  previewText: MESSAGE_DEFAULTS.previewText,
+  message: MESSAGE_DEFAULTS.message,
+  buttonUrl: MESSAGE_DEFAULTS.buttonUrl,
+  buttonText: MESSAGE_DEFAULTS.buttonText,
+})
+</script>
+<template><div /></template>
+`, 'utf-8')
+
+    try {
+      const { defaults, props } = extractPropsFromSFC(sfcFile)
+      expect(defaults).toEqual({
+        previewText: 'Imported preview',
+        message: 'Imported message body',
+        buttonUrl: 'https://example.com/imported',
+        buttonText: 'Imported CTA',
+      })
+
+      expect(props).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: 'previewText', default: 'Imported preview' }),
+          expect.objectContaining({ name: 'message', default: 'Imported message body' }),
+          expect.objectContaining({ name: 'buttonUrl', default: 'https://example.com/imported' }),
+          expect.objectContaining({ name: 'buttonText', default: 'Imported CTA' }),
+        ]),
+      )
+    }
+    finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+    }
+  })
 })

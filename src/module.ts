@@ -266,15 +266,21 @@ export function useNgeTemplate(name: string, props: Record<string, unknown>): vo
       })
     }
 
-    // Generate server route handlers into the build directory and register them programmatically.
-    // Props and defaults are extracted from each SFC's defineProps + withDefaults.
+    // Generate server route handlers and register each as a Nuxt template-backed
+    // server handler so Nitro can always resolve them during build.
     const handlers = generateServerRoutes(emailsDir, nuxt.options.buildDir)
 
     for (const handler of handlers) {
+      const template = addTemplate({
+        filename: handler.handlerPath,
+        write: true,
+        getContents: () => handler.handlerContent,
+      })
+
       addServerHandler({
         route: handler.route,
         method: handler.method,
-        handler: handler.handlerPath,
+        handler: template.dst,
       })
     }
 

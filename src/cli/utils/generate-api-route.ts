@@ -14,11 +14,11 @@ import Handlebars from 'handlebars'
  * Register all .mjml files from the components directory as Handlebars partials.
  * This lets templates use {{> partialName}} to include reusable MJML snippets.
  */
-function registerMjmlPartials(emailsDir: string): void {
+function registerMjmlPartials(emailsDir) {
   const componentsDir = join(emailsDir, 'components')
   if (!existsSync(componentsDir)) return
 
-  const walk = (dir: string) => {
+  const walk = (dir) => {
     const entries = readdirSync(dir, { withFileTypes: true })
 
     for (const entry of entries) {
@@ -43,21 +43,6 @@ function registerMjmlPartials(emailsDir: string): void {
   }
 
   walk(componentsDir)
-}
-
-type SendData<TAdditional extends Record<string, unknown> = Record<string, unknown>> = {
-  to?: string
-  from?: string
-  subject?: string
-} & TAdditional
-
-type NuxtGenEmailsApiBody<
-  TTemplateData extends Record<string, unknown> = Record<string, unknown>,
-  TSendData extends Record<string, unknown> = SendData,
-> = {
-  templateData: TTemplateData
-  sendData: TSendData
-  stopSend?: boolean
 }
 
 defineRouteMeta({
@@ -137,14 +122,14 @@ defineRouteMeta({
 })
 
 export default defineEventHandler(async (event) => {
-  const body = await readBody<NuxtGenEmailsApiBody>(event)
+  const body = await readBody(event)
 
   const templateData = body?.templateData ?? {}
   const sendData = body?.sendData ?? {}
   const stopSend = body?.stopSend === true
 
   try {
-    const { emailsDir } = useRuntimeConfig().nuxtGenEmails as { emailsDir: string }
+    const { emailsDir } = useRuntimeConfig().nuxtGenEmails
     registerMjmlPartials(emailsDir)
     const mjmlSource = readFileSync(join(emailsDir, '${mjmlPath}.mjml'), 'utf-8')
     const compiledTemplate = Handlebars.compile(mjmlSource)
@@ -163,7 +148,7 @@ export default defineEventHandler(async (event) => {
 
     return { success: true, message: 'Email rendered successfully', html }
   }
-  catch (error: unknown) {
+  catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to render or send email'
     throw createError({ statusCode: 500, statusMessage: message })
   }

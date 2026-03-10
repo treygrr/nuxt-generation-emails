@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { dirname, join, resolve as resolvePath } from 'pathe'
 import { parse as parseSFC, compileScript } from 'vue/compiler-sfc'
 
 /**
@@ -73,7 +74,7 @@ export function extractPropsFromSFC(filePath: string): ExtractedProps {
     // Extract defaults from withDefaults() by parsing the source AST.
     // The compiler stores the defaults expression range; we evaluate the
     // literal object from the source text.
-    const defaultValues = extractDefaults(compiled.scriptSetupAst, descriptor.scriptSetup.content)
+    const defaultValues = extractDefaults(compiled.scriptSetupAst, descriptor.scriptSetup.content, filePath)
     for (const [name, value] of Object.entries(defaultValues)) {
       defaults[name] = value
       const existing = props.find(p => p.name === name)
@@ -94,6 +95,8 @@ type AstNode = {
   [key: string]: unknown
 }
 
+type EvaluationScope = Record<string, unknown>
+
 function asAstNode(value: unknown): AstNode | null {
   if (!value || typeof value !== 'object') return null
   const node = value as Record<string, unknown>
@@ -101,13 +104,258 @@ function asAstNode(value: unknown): AstNode | null {
   return node as AstNode
 }
 
-function extractDefaults(scriptSetupAst: unknown[] | undefined, scriptContent: string): Record<string, unknown> {
-  const astDefaults = extractDefaultsFromAst(scriptSetupAst)
-  if (astDefaults) return astDefaults
-  return extractDefaultsFromSource(scriptContent)
+interface NamedValueImport {
+  source: string
+  importedName: string
+  localName: string
 }
 
-function extractDefaultsFromAst(scriptSetupAst: unknown[] | undefined): Record<string, unknown> | null {
+interface ExtractedExpression {
+  text: string
+  end: number
+}
+
+function isValidIdentifierName(value: string): boolean {
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value)
+}
+
+function parseNamedValueImports(scriptContent: string): NamedValueImport[] {
+  const imports: NamedValueImport[] = []
+  const importPattern = /import\s+(?!type\b)(?:[A-Za-z_$][A-Za-z0-9_$]*\s*,\s*)?\{([\s\S]*?)\}\s*from\s*['"]([^'"]+)['"]/g
+  let match: RegExpExecArray | null
+
+  while ((match = importPattern.exec(scriptContent)) !== null) {
+    const specifiers = match[1] ?? ''
+    const source = match[2] ?? ''
+
+    for (const rawToken of specifiers.split(',')) {
+      const token = rawToken.trim()
+      if (!token) continue
+
+      const cleaned = token.replace(/^type\s+/, '').trim()
+      if (!cleaned) continue
+
+      const aliasMatch = cleaned.match(/^([A-Za-z_$][A-Za-z0-9_$]*)\s+as\s+([A-Za-z_$][A-Za-z0-9_$]*)$/)
+      if (aliasMatch) {
+        imports.push({
+          source,
+          importedName: aliasMatch[1]!,
+          localName: aliasMatch[2]!,
+        })
+        continue
+      }
+
+      if (isValidIdentifierName(cleaned)) {
+        imports.push({
+          source,
+          importedName: cleaned,
+          localName: cleaned,
+        })
+      }
+    }
+  }
+
+  return imports
+}
+
+function resolveImportModulePath(sfcFilePath: string, importSource: string): string | null {
+  if (!importSource.startsWith('.')) return null
+
+  const basePath = resolvePath(dirname(sfcFilePath), importSource)
+  const candidates = [
+    basePath,
+    `${basePath}.ts`,
+    `${basePath}.mts`,
+    `${basePath}.cts`,
+    `${basePath}.js`,
+    `${basePath}.mjs`,
+    `${basePath}.cjs`,
+    join(basePath, 'index.ts'),
+    join(basePath, 'index.mts'),
+    join(basePath, 'index.cts'),
+    join(basePath, 'index.js'),
+    join(basePath, 'index.mjs'),
+    join(basePath, 'index.cjs'),
+  ]
+
+  for (const candidate of candidates) {
+    if (!fs.existsSync(candidate)) continue
+    try {
+      if (fs.statSync(candidate).isFile()) {
+        return candidate
+      }
+    }
+    catch {
+      continue
+    }
+  }
+
+  return null
+}
+
+function extractTopLevelExpression(source: string, startIndex: number): ExtractedExpression | null {
+  let i = startIndex
+  while (i < source.length && /\s/.test(source[i]!)) i++
+  if (i >= source.length) return null
+
+  const expressionStart = i
+  let depthParen = 0
+  let depthBrace = 0
+  let depthBracket = 0
+  let seenContent = false
+
+  while (i < source.length) {
+    const ch = source[i]!
+
+    if (ch === '\'' || ch === '"') {
+      seenContent = true
+      const quote = ch
+      i++
+      while (i < source.length) {
+        if (source[i] === '\\') { i += 2; continue }
+        if (source[i] === quote) break
+        i++
+      }
+      i++
+      continue
+    }
+
+    if (ch === '`') {
+      seenContent = true
+      i++
+      while (i < source.length) {
+        if (source[i] === '\\') { i += 2; continue }
+        if (source[i] === '`') break
+        if (source[i] === '$' && source[i + 1] === '{') {
+          i += 2
+          let templateDepth = 1
+          while (i < source.length && templateDepth > 0) {
+            if (source[i] === '{') templateDepth++
+            else if (source[i] === '}') templateDepth--
+            if (templateDepth > 0) i++
+          }
+        }
+        i++
+      }
+      i++
+      continue
+    }
+
+    if (ch === '/' && source[i + 1] === '/') {
+      i = source.indexOf('\n', i)
+      if (i === -1) break
+      continue
+    }
+
+    if (ch === '/' && source[i + 1] === '*') {
+      const blockEnd = source.indexOf('*/', i + 2)
+      if (blockEnd === -1) break
+      i = blockEnd + 2
+      continue
+    }
+
+    if (ch === '(') depthParen++
+    else if (ch === ')') depthParen = Math.max(0, depthParen - 1)
+    else if (ch === '{') depthBrace++
+    else if (ch === '}') {
+      if (depthBrace > 0) depthBrace--
+      else break
+    }
+    else if (ch === '[') depthBracket++
+    else if (ch === ']') depthBracket = Math.max(0, depthBracket - 1)
+
+    if (!/\s/.test(ch)) {
+      seenContent = true
+    }
+
+    const atTopLevel = depthParen === 0 && depthBrace === 0 && depthBracket === 0
+    if (atTopLevel && ch === ';') {
+      break
+    }
+
+    if (atTopLevel && ch === '\n' && seenContent) {
+      const rest = source.slice(i + 1).trimStart()
+      if (!rest || rest.startsWith('export ') || rest.startsWith('const ') || rest.startsWith('interface ') || rest.startsWith('type ')) {
+        break
+      }
+    }
+
+    i++
+  }
+
+  const expressionText = source.slice(expressionStart, i).trim()
+  if (!expressionText) return null
+  return { text: expressionText, end: i + 1 }
+}
+
+function evaluateExpressionText(expressionText: string): { ok: boolean, value: unknown } {
+  const normalized = expressionText
+    .replace(/\s+as\s+const\s*$/, '')
+    .replace(/\s+satisfies\s+[A-Za-z_$][A-Za-z0-9_$<>,\s.\[\]|&?]*\s*$/, '')
+
+  try {
+    // eslint-disable-next-line no-new-func
+    const fn = new Function(`return (${normalized})`)
+    return { ok: true, value: fn() }
+  }
+  catch {
+    return { ok: false, value: undefined }
+  }
+}
+
+function extractExportedConstValues(moduleFilePath: string): Record<string, unknown> {
+  const source = fs.readFileSync(moduleFilePath, 'utf-8')
+  const exportsMap: Record<string, unknown> = {}
+  const exportConstPattern = /export\s+const\s+([A-Za-z_$][A-Za-z0-9_$]*)(?:\s*:[^=]+)?\s*=/g
+  let match: RegExpExecArray | null
+
+  while ((match = exportConstPattern.exec(source)) !== null) {
+    const exportName = match[1]!
+    const expression = extractTopLevelExpression(source, exportConstPattern.lastIndex)
+    if (!expression) continue
+
+    const evaluated = evaluateExpressionText(expression.text)
+    if (evaluated.ok) {
+      exportsMap[exportName] = evaluated.value
+    }
+
+    exportConstPattern.lastIndex = expression.end
+  }
+
+  return exportsMap
+}
+
+function buildImportScope(scriptContent: string, sfcFilePath: string): EvaluationScope {
+  const scope: EvaluationScope = {}
+  const imports = parseNamedValueImports(scriptContent)
+  const moduleExportsCache = new Map<string, Record<string, unknown>>()
+
+  for (const importInfo of imports) {
+    const modulePath = resolveImportModulePath(sfcFilePath, importInfo.source)
+    if (!modulePath) continue
+
+    let moduleExports = moduleExportsCache.get(modulePath)
+    if (!moduleExports) {
+      moduleExports = extractExportedConstValues(modulePath)
+      moduleExportsCache.set(modulePath, moduleExports)
+    }
+
+    if (Object.prototype.hasOwnProperty.call(moduleExports, importInfo.importedName)) {
+      scope[importInfo.localName] = moduleExports[importInfo.importedName]
+    }
+  }
+
+  return scope
+}
+
+function extractDefaults(scriptSetupAst: unknown[] | undefined, scriptContent: string, sfcFilePath: string): Record<string, unknown> {
+  const evalScope = buildImportScope(scriptContent, sfcFilePath)
+  const astDefaults = extractDefaultsFromAst(scriptSetupAst, evalScope)
+  if (astDefaults) return astDefaults
+  return extractDefaultsFromSource(scriptContent, evalScope)
+}
+
+function extractDefaultsFromAst(scriptSetupAst: unknown[] | undefined, evalScope: EvaluationScope): Record<string, unknown> | null {
   if (!Array.isArray(scriptSetupAst)) return null
 
   for (const root of scriptSetupAst) {
@@ -117,7 +365,7 @@ function extractDefaultsFromAst(scriptSetupAst: unknown[] | undefined): Record<s
     if (!found) continue
 
     try {
-      const evaluated = evaluateAstExpression(found)
+      const evaluated = evaluateAstExpression(found, evalScope)
       if (evaluated && typeof evaluated === 'object' && !Array.isArray(evaluated)) {
         return evaluated as Record<string, unknown>
       }
@@ -160,7 +408,7 @@ function findWithDefaultsSecondArg(node: AstNode): AstNode | null {
   return null
 }
 
-function evaluateAstExpression(node: AstNode): unknown {
+function evaluateAstExpression(node: AstNode, evalScope: EvaluationScope): unknown {
   switch (node.type) {
     case 'ObjectExpression': {
       const result: Record<string, unknown> = {}
@@ -181,7 +429,7 @@ function evaluateAstExpression(node: AstNode): unknown {
 
         const valueNode = asAstNode(prop.value)
         if (!valueNode) continue
-        result[key] = evaluateAstExpression(valueNode)
+        result[key] = evaluateAstExpression(valueNode, evalScope)
       }
       return result
     }
@@ -191,7 +439,7 @@ function evaluateAstExpression(node: AstNode): unknown {
       return elements
         .map(element => asAstNode(element))
         .filter((element): element is AstNode => !!element)
-        .map(element => evaluateAstExpression(element))
+        .map(element => evaluateAstExpression(element, evalScope))
     }
 
     case 'StringLiteral':
@@ -232,23 +480,72 @@ function evaluateAstExpression(node: AstNode): unknown {
           .map(stmt => asAstNode(stmt))
           .find(stmt => stmt?.type === 'ReturnStatement')
         const arg = returnStmt ? asAstNode(returnStmt.argument) : null
-        return arg ? evaluateAstExpression(arg) : undefined
+        return arg ? evaluateAstExpression(arg, evalScope) : undefined
       }
-      return evaluateAstExpression(body)
+      return evaluateAstExpression(body, evalScope)
     }
 
     case 'ParenthesizedExpression': {
       const expr = asAstNode(node.expression)
-      return expr ? evaluateAstExpression(expr) : undefined
+      return expr ? evaluateAstExpression(expr, evalScope) : undefined
     }
 
     case 'TSAsExpression': {
       const expr = asAstNode(node.expression)
-      return expr ? evaluateAstExpression(expr) : undefined
+      return expr ? evaluateAstExpression(expr, evalScope) : undefined
+    }
+
+    case 'TSSatisfiesExpression': {
+      const expr = asAstNode(node.expression)
+      return expr ? evaluateAstExpression(expr, evalScope) : undefined
+    }
+
+    case 'TSNonNullExpression': {
+      const expr = asAstNode(node.expression)
+      return expr ? evaluateAstExpression(expr, evalScope) : undefined
+    }
+
+    case 'MemberExpression': {
+      const objectNode = asAstNode(node.object)
+      if (!objectNode) {
+        throw new Error('Unsupported MemberExpression object in defaults')
+      }
+
+      const targetValue = evaluateAstExpression(objectNode, evalScope)
+      if (targetValue === null || typeof targetValue !== 'object') {
+        return undefined
+      }
+
+      const propertyNode = asAstNode(node.property)
+      const computed = node.computed === true
+      let propertyKey: string | null = null
+
+      if (computed) {
+        if (!propertyNode) {
+          throw new Error('Unsupported computed MemberExpression property in defaults')
+        }
+        const keyValue = evaluateAstExpression(propertyNode, evalScope)
+        if (typeof keyValue === 'string' || typeof keyValue === 'number') {
+          propertyKey = String(keyValue)
+        }
+      }
+      else {
+        propertyKey = propertyNode?.type === 'Identifier'
+          ? String(propertyNode.name)
+          : propertyNode?.type === 'StringLiteral'
+            ? String(propertyNode.value)
+            : null
+      }
+
+      if (!propertyKey) return undefined
+      return (targetValue as Record<string, unknown>)[propertyKey]
     }
 
     case 'Identifier': {
       if (node.name === 'undefined') return undefined
+      if (typeof node.name === 'string' && Object.prototype.hasOwnProperty.call(evalScope, node.name)) {
+        return evalScope[node.name]
+      }
       throw new Error(`Unsupported identifier in defaults: ${String(node.name)}`)
     }
 
@@ -471,15 +768,19 @@ function parsePropEntries(typeBody: string, result: Record<string, ExtractedProp
  * Uses balanced-delimiter matching to correctly handle nested structures
  * (arrays, objects) and arrow-function factory defaults.
  */
-function extractDefaultsFromSource(scriptContent: string): Record<string, unknown> {
+function extractDefaultsFromSource(scriptContent: string, evalScope: EvaluationScope): Record<string, unknown> {
   const defaultsText = extractDefaultsObjectText(scriptContent)
   if (!defaultsText) return {}
 
   try {
+    const scopeEntries = Object.entries(evalScope).filter(([name]) => isValidIdentifierName(name))
+    const argNames = scopeEntries.map(([name]) => name)
+    const argValues = scopeEntries.map(([, value]) => value)
+
     // Evaluate the defaults object as a JS expression.
     // Arrow-function factories like `() => [...]` are called to get actual values.
     // eslint-disable-next-line no-new-func
-    const fn = new Function(`
+    const fn = new Function(...argNames, `
       const _defaults = (${defaultsText});
       const _result = {};
       for (const [k, v] of Object.entries(_defaults)) {
@@ -487,12 +788,16 @@ function extractDefaultsFromSource(scriptContent: string): Record<string, unknow
       }
       return _result;
     `)
-    return fn() as Record<string, unknown>
+    return fn(...argValues) as Record<string, unknown>
   }
   catch {
     // Fall back to line-by-line extraction for primitives
     return extractPrimitivesFromObjectLiteral(defaultsText)
   }
+}
+
+function debugLog(_message: string, _error?: unknown): void {
+  // No-op by default. Hook for local debugging while keeping extraction resilient.
 }
 
 /**

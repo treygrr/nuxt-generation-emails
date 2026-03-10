@@ -44,6 +44,7 @@ export interface ServerHandlerInfo {
   route: string
   method: 'post' | 'get' | 'put' | 'delete' | 'patch'
   handlerPath: string
+  handlerContent: string
 }
 
 function normalizeApiEmailPath(emailsDir: string, routePrefix: string, emailName: string): string {
@@ -69,28 +70,23 @@ function normalizeApiEmailPath(emailsDir: string, routePrefix: string, emailName
 
 /**
  * Generate server route handlers for all email templates in a directory.
- * Handlers are written to the build directory and returned for registration
- * via addServerHandler(), keeping the user's source tree clean.
+ * Handler source strings are generated and returned for registration
+ * via addServerHandler() + addTemplate(), keeping the user's source tree clean.
  *
  * Props and defaults are extracted directly from each .vue SFC's defineProps +
  * withDefaults — no separate .data.ts file needed.
  *
  * @param emailsDir - Path to the emails directory
- * @param buildDir  - Nuxt build directory (.nuxt)
+ * @param _buildDir - Nuxt build directory (.nuxt)
  * @returns Array of handler info objects for registration with addServerHandler()
  */
 export function generateServerRoutes(
   emailsDir: string,
-  buildDir: string,
+  _buildDir: string,
 ): ServerHandlerInfo[] {
   if (!fs.existsSync(emailsDir)) return []
 
-  const handlersDir = join(buildDir, 'email-handlers')
   const handlers: ServerHandlerInfo[] = []
-
-  if (!fs.existsSync(handlersDir)) {
-    fs.mkdirSync(handlersDir, { recursive: true })
-  }
 
   function processEmailDirectory(dirPath: string, routePrefix: string = '') {
     const entries = fs.readdirSync(dirPath)
@@ -124,14 +120,6 @@ export function generateServerRoutes(
           continue
         }
 
-        const handlerDir = routePrefix
-          ? join(handlersDir, routePrefix.replace(/^\//, ''))
-          : handlersDir
-
-        if (!fs.existsSync(handlerDir)) {
-          fs.mkdirSync(handlerDir, { recursive: true })
-        }
-
         // Extract prop defaults from the SFC for the OpenAPI example payload
         const { defaults } = extractPropsFromSFC(fullPath)
         const sanitized = sanitizeForOpenApi(defaults)
@@ -142,17 +130,17 @@ export function generateServerRoutes(
           ? JSON.stringify(sanitizedDefaults, null, 2)
           : '{}'
 
-        const handlerFileName = `${emailName}.ts`
-        const handlerFilePath = join(handlerDir, handlerFileName)
+        const handlerFilePath = routePrefix
+          ? join('email-handlers', routePrefix.replace(/^\//, ''), `${emailName}.ts`)
+          : join('email-handlers', `${emailName}.ts`)
         const handlerContent = generateApiRoute(emailName, emailPath, examplePayload, mjmlTemplateName)
-
-        fs.writeFileSync(handlerFilePath, handlerContent, 'utf-8')
-        console.log(`[nuxt-generation-emails] Generated API handler: ${handlerFilePath}`)
+        console.log(`[nuxt-generation-emails] Generated API handler template: ${handlerFilePath}`)
 
         handlers.push({
           route: `/api/emails/${emailPath}`,
           method: 'post',
           handlerPath: handlerFilePath,
+          handlerContent,
         })
       }
     }
